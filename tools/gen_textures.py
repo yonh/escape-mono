@@ -92,12 +92,15 @@ def wall_concrete() -> list:
             # rain streaks: horizontally-locked noise streaking downward
             r = _vn(g2, x / SIZE * 16, y / SIZE * 2)
             v -= max(0.0, r - 0.72) * 0.35
-            # horizontal form line at y≈SIZE/2 and panel seam at wrap x=0
+            # horizontal form line at y≈SIZE/2 and panel seam straddling the
+            # wrap edge (x=0 and x=SIZE-1 meet) — groove centered on the border
+            # so tiling shows one clean joint, not a one-sided step (review BUG_0001).
             if abs(y - SIZE // 2) <= 1:
                 v *= 0.82
-            if x <= 2:
+            edge = min(x, SIZE - 1 - x)  # 到左右缘的最近距离（wrap 对称）
+            if edge <= 1:
                 v *= 0.72
-            elif x <= 4:
+            elif edge <= 3:
                 v *= 0.9
             row.append((_clamp(v * 255), _clamp(v * 255), _clamp(v * 252)))
         px.append(row)
