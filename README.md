@@ -19,8 +19,9 @@ session leaves an execution log that feeds periodic workflow retrospectives.
 
 ## 运行
 
+前置：Godot 4.7+、Git LFS（`brew install git-lfs && git lfs install`，二进制资产经 LFS 存取）。
+
 ```bash
-# Godot 4.7+，二进制在 PATH（本机为 /Applications/Godot.app）
 # 首次或拉取新资产后先导入
 godot --path game --import
 # 运行

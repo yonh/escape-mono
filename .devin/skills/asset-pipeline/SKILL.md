@@ -24,5 +24,6 @@ description: 本仓库资产生命周期——当任务涉及新增/替换/制�
 ## 注意
 
 - AI 生成资产的 `license` 填 CC0-1.0（与本库一致）；第三方资产必须如实填原 license。
+- 二进制资产（模型/贴图/音频等）经 Git LFS 提交——`.gitattributes` 已覆盖常见扩展名；新增类型时先补 pattern 再提交，否则二进制会溜进普通 git。
 - 一次只推进必要条目——manifest 里 `needed`  backlog 是给后续会话的队列，不用清完。
 - 别把二进制资产直接拖进 `game/` 绕开台账。
