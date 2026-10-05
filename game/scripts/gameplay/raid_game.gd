@@ -7,6 +7,9 @@ extends Node3D
 const PLAYER_SCRIPT := preload("res://scripts/fps_controller.gd")
 const GAME_STATE := preload("res://scripts/gameplay/game_state.gd")
 const FACTORY_MAP := preload("res://scripts/gameplay/factory_map.gd")
+const OUTDOOR_MAP := preload("res://scripts/gameplay/outdoor_map.gd")
+## 图 id → 地图模块（与 factory_map 同契约：build/MAP_NAME/zone_label_at/RAID_SECONDS）。
+const MAPS := {"factory": FACTORY_MAP, "outpost": OUTDOOR_MAP}
 const RAID_KIT := preload("res://scripts/gameplay/raid_kit.gd")
 const EQUIPMENT := preload("res://scripts/gameplay/equipment.gd")
 const LOOT_CRATE := preload("res://scripts/gameplay/loot_crate.gd")
@@ -59,13 +62,17 @@ var _active_slot := 0
 func _ready() -> void:
 	GAME_STATE.ensure()
 	_map_id = String(GAME_STATE.raid_map_id)
-	# 工厂：室内固定设施——无昼夜太阳光，照明全部来自地图灯光表。
-	_build_indoor_lighting()
-	var built: Dictionary = FACTORY_MAP.build(self, GAME_STATE.raid_plan)
-	_raid_plan = {"source": "factory"}
-	_map_name = FACTORY_MAP.MAP_NAME
-	_zone_label_fn = FACTORY_MAP.zone_label_at
-	_raid_left = FACTORY_MAP.RAID_SECONDS
+	var map = MAPS.get(_map_id, FACTORY_MAP)
+	var built: Dictionary = map.build(self, GAME_STATE.raid_plan)
+	# 光照按地图类型分：室内=OmniLight 表+浓雾；野外=天空+太阳+淡雾。
+	if bool(built.get("indoor", true)):
+		_build_indoor_lighting()
+	else:
+		_build_outdoor_lighting()
+	_raid_plan = {"source": _map_id}
+	_map_name = map.MAP_NAME
+	_zone_label_fn = map.zone_label_at
+	_raid_left = map.RAID_SECONDS
 	_build_player(built.get("spawn", Vector3.ZERO), float(built.get("spawn_yaw", 0.0)))
 	_hook_crate_auto_open()
 	_hook_enemies()
@@ -168,6 +175,34 @@ func _build_indoor_lighting() -> void:
 	_environment.ambient_light_energy = 0.32  # 走廊纯黑不可读→抬高底光
 	world.environment = _environment
 	add_child(world)
+
+
+## 野外图光照：阴天 ProceduralSky + 单太阳（开阴影读地形）+ 淡雾纵深。
+func _build_outdoor_lighting() -> void:
+	var world := WorldEnvironment.new()
+	_environment = Environment.new()
+	_environment.background_mode = Environment.BG_SKY
+	var sky := Sky.new()
+	var skymat := ProceduralSkyMaterial.new()
+	skymat.sky_top_color = Color(0.36, 0.44, 0.58)
+	skymat.sky_horizon_color = Color(0.62, 0.63, 0.64)
+	skymat.ground_bottom_color = Color(0.22, 0.21, 0.18)
+	skymat.ground_horizon_color = Color(0.5, 0.5, 0.46)
+	sky.sky_material = skymat
+	_environment.sky = sky
+	_environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	_environment.ambient_light_energy = 0.55
+	_environment.fog_enabled = true
+	_environment.fog_light_color = Color(0.6, 0.62, 0.65)
+	_environment.fog_density = 0.008
+	world.environment = _environment
+	add_child(world)
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-52, -28, 0)
+	sun.light_color = Color(1.0, 0.94, 0.82)
+	sun.light_energy = 0.9
+	sun.shadow_enabled = true
+	add_child(sun)
 
 
 func _build_player(spawn: Vector3, yaw: float) -> void:

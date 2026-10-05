@@ -87,7 +87,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			&"equip":
 				_open_equipment()
 			&"depart_factory":
-				_depart()
+				_depart("factory")
+			&"depart_outpost":
+				_depart("outpost")
 
 
 func _interact_target() -> Node3D:
@@ -239,15 +241,15 @@ func _drain_stash_if_idle() -> void:
 	GAME_STATE.drain_stash_pending()
 
 
-func _depart() -> void:
+func _depart(map_id: String = "factory") -> void:
 	if _departing:
 		return
 	_departing = true
-	print("[DEPART] map=factory")
-	GAME_STATE.raid_map_id = "factory"
+	print("[DEPART] map=%s" % map_id)
+	GAME_STATE.raid_map_id = map_id
 	GAME_STATE.pack_for_raid()  # 背包格子按装备的背包品目收放，放不下回仓库
 	_player.frozen = true
-	GAME_STATE.raid_plan = {"source": "factory"}
+	GAME_STATE.raid_plan = {"source": map_id}
 	GAME_STATE.raids_departed += 1  # 出发计 departed；completed 只由撤离加
 	SAVE_KIT.save_inraid()  # 存「在局中」快照：背包剥离——弃局重启即 MIA
 	get_tree().change_scene_to_file(RAID_SCENE)
@@ -334,7 +336,8 @@ func _build_room() -> void:
 
 	# Departure pad —— 工厂（室内 CQB）当前唯一图。
 	for pad_def in [
-		{"x": 0.0, "prompt": "出发前往工厂（室内）", "action": &"depart_factory", "label": "出发 DEPART → 工厂"},
+		{"x": -1.4, "prompt": "出发前往工厂（室内）", "action": &"depart_factory", "label": "出发 DEPART → 工厂"},
+		{"x": 1.4, "prompt": "出发前往外围哨站（野外）", "action": &"depart_outpost", "label": "出发 DEPART → 哨站"},
 	]:
 		var pad_body := INTERACTABLE.new()
 		pad_body.prompt = String(pad_def["prompt"])

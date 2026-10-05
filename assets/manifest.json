@@ -211,6 +211,16 @@
       "file": "textures/metal_plate.png",
       "target": "game/assets/textures/metal_plate.png",
       "notes": "波纹压型钢板（gen_textures.py）：屋面/天花"
+    },
+    {
+      "id": "ground_texture",
+      "type": "texture",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "textures/ground_dirt.png",
+      "target": "game/assets/texture/ground_dirt.png",
+      "notes": "野外地表（gen_textures.py）：草泥混色可平铺"
     }
   ]
 }

@@ -179,11 +179,37 @@ def metal_plate() -> list:
     return px
 
 
+def ground_dirt() -> list:
+    """野外地表：褐黄草泥混色，低频色块 + 高频颗粒 + 稀疏草丛/裸土斑。"""
+    rnd = random.Random(404)
+    g1, g2 = _lattice(41, 6), _lattice(42, 20)
+    patch = _lattice(43, 5)  # 草/泥色块低频
+    grids = [g1, g2]
+    px = []
+    for y in range(SIZE):
+        row = []
+        for x in range(SIZE):
+            p = _vn(patch, x / SIZE * 5, y / SIZE * 5)
+            n = _fbm(grids, x, y) * 0.5
+            v = 0.34 + (n - 0.5) * 0.20
+            v += (rnd.random() - 0.5) * 0.06
+            # 草绿↔土褐插值
+            r_, g_, b_ = 0.9, 0.82, 0.62
+            if p > 0.58:  # 草丛补丁
+                r_, g_, b_ = 0.62, 0.78, 0.5
+            elif p < 0.40:  # 裸土
+                r_, g_, b_ = 1.0, 0.9, 0.72
+            row.append((_clamp(v * 255 * r_), _clamp(v * 255 * g_), _clamp(v * 255 * b_)))
+        px.append(row)
+    return px
+
+
 def main() -> int:
     os.makedirs(OUT, exist_ok=True)
     write_png(os.path.join(OUT, "wall_concrete.png"), wall_concrete())
     write_png(os.path.join(OUT, "floor_concrete.png"), floor_concrete())
     write_png(os.path.join(OUT, "metal_plate.png"), metal_plate())
+    write_png(os.path.join(OUT, "ground_dirt.png"), ground_dirt())
     return 0
 
 
