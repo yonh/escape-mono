@@ -1,0 +1,51 @@
+name: release
+
+# 只在 tag 触发——PR 保持快门槛（见 AGENTS/记忆：PR CI 不做全平台构建）。
+on:
+  push:
+    tags: ["v*"]
+
+# BUG_0003：action-gh-release 需要写权限创建 Release/传包。
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      # 资产同步 + headless 测试跑通再打包（构建入口和本地一致）
+      - name: Sync assets
+        run: python3 tools/sync_assets.py
+
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7
+          include-dotnet: false
+
+      - name: Install export templates
+        run: |
+          TPL_DIR="$HOME/.local/share/godot/export_templates/4.7.stable"
+          mkdir -p "$TPL_DIR"
+          curl -sL -o /tmp/tpl.tpz \
+            https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_export_templates.tpz
+          unzip -qo /tmp/tpl.tpz "templates/*" -d "$TPL_DIR"
+          mv "$TPL_DIR"/templates/* "$TPL_DIR"/ && rmdir "$TPL_DIR"/templates
+
+      # BUG_0002：全新检出无 .godot/ 导入缓存，先导入再导出。
+      - name: Import resources
+        run: godot --headless --path game --import
+
+      - name: Export all platforms
+        env:
+          GODOT: godot
+        run: bash tools/export.sh all
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: builds/release/escape-mono-*.zip
+          generate_release_notes: true

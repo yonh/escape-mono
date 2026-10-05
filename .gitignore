@@ -8,5 +8,8 @@
 # Logs / local runs
 *.log
 
-# 本地导出产物
+# 本地导出产物（builds/release 由 CI 上传 Release）
 builds/
+
+# 本地用户存档
+*.save
