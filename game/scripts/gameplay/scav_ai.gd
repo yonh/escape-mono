@@ -35,6 +35,8 @@ var _search_t := 0.0
 var _fire_cd := 0.0
 var _grace_t := 0.0            # 出生保护期：玩家未离开出生点 4m 且未开火时完全不可见
 var _grace_origin := Vector3.ZERO
+var _chase_best := INF         # 追击中距最后目击点的最近纪录（stuck 检测）
+var _stuck_t := 0.0
 var _facing := Vector3.FORWARD
 var _rng := RandomNumberGenerator.new()
 var _body: MeshInstance3D = null
@@ -86,6 +88,7 @@ func _physics_process(delta: float) -> void:
 				_patrol_step(delta)
 		&"chase":
 			if seen:
+				_stuck_t = 0.0
 				var dist := _flat_dist(_target.global_position)
 				if dist <= attack_range:
 					_state = &"attack"
@@ -93,11 +96,23 @@ func _physics_process(delta: float) -> void:
 					_move_toward(_last_seen, speed_chase, delta, 1.2)
 			else:
 				_lost_t += delta
-				if _flat_dist(_last_seen) <= 1.2:
+				var d := _flat_dist(_last_seen)
+				if d <= 1.2:
 					_state = &"search"
 					_search_t = lose_sight_s
-				else:
+				elif d < _chase_best - 0.3:
+					# 仍在逼近最后目击点
+					_chase_best = d
+					_stuck_t = 0.0
 					_move_toward(_last_seen, speed_chase, delta)
+				else:
+					# 掩体挡路走不到目击点：无进展 1.5s 放弃转搜索（review BUG_0004）
+					_stuck_t += delta
+					if _stuck_t > 1.5:
+						_state = &"search"
+						_search_t = lose_sight_s
+					else:
+						_move_toward(_last_seen, speed_chase, delta)
 		&"attack":
 			if not seen:
 				_lost_t += delta
@@ -140,17 +155,18 @@ func _can_see_target() -> bool:
 	var eye := global_position + Vector3(0, 1.55, 0)
 	var tgt := _target.global_position + Vector3(0, 1.2, 0)
 	var to := tgt - eye
-	var dist := to.length()
-	if dist > sight_range:
-		return false
-	# 出生保护：玩家还在出生点 4m 内（未开火、未到点）则完全不可见——
-	# 比 patrol-LOS 几何更稳，三个出生点通用；计时到期后恢复常规索敌。
+	# 出生保护判定先于视距/视锥：离开出生区对全体敌人一次性结束（review
+	# BUG_0002——原来只在视距内才清标志，远处敌人留着保护，回圈又隐形）。
 	if _grace_t > 0.0:
 		var from_spawn := _target.global_position - _grace_origin
 		from_spawn.y = 0.0
-		if from_spawn.length() <= 4.0:
-			return false
-		_grace_t = 0.0  # 玩家已离开出生区，保护即刻结束
+		if from_spawn.length() > 4.0:
+			_grace_t = 0.0
+		else:
+			return false  # 还在出生圈内 → 完全不可见
+	var dist := to.length()
+	if dist > sight_range:
+		return false
 	var flat := Vector3(to.x, 0, to.z).normalized()
 	if dist > 2.0 and _facing.normalized().dot(flat) < sight_cos:
 		return false
@@ -168,6 +184,8 @@ func _alert() -> void:
 		return
 	_state = &"chase"
 	_lost_t = 0.0
+	_chase_best = INF
+	_stuck_t = 0.0
 	print("[AI] alert pos=(%.1f,%.1f)" % [global_position.x, global_position.z])
 
 
@@ -262,6 +280,8 @@ func take_damage(dmg: float) -> void:
 		if _state == &"patrol" or _state == &"search":
 			_state = &"chase"
 			_lost_t = 0.0
+			_chase_best = INF
+			_stuck_t = 0.0
 			print("[AI] alert pos=(%.1f,%.1f) dmg" % [global_position.x, global_position.z])
 
 
@@ -274,18 +294,38 @@ func _die() -> void:
 	for child in get_children():
 		if child is CollisionShape3D:
 			child.set_deferred("disabled", true)
-	# 尸体可搜刮：尸体箱放在身体侧旁、偏向玩家一侧（免得和尸体视觉/墙体重叠）。
+	# 尸体可搜刮：尸体箱放身体侧旁偏玩家一侧；用 shape 查询依次试
+	# 两侧/前后取第一个空位——免得塞建立柱/墙里摸不到（review BUG_0003）。
 	var corpse := LOOT_CRATE.new()
 	corpse.setup(loot_table, 4, 3, 1.8)
 	corpse.build_mesh(Color(0.25, 0.22, 0.18))
+	corpse.position = global_position + _corpse_spot() * 0.9
+	corpse.position.y = 0.0
+	print("[AI] die pos=(%.1f,%.1f) hp=0" % [global_position.x, global_position.z])
+	died.emit(self, corpse)
+
+
+## 尸体箱落位：按「玩家侧→另一侧→前方→后方」试，返回第一个无碰撞的方向；
+## 全堵则原地（spawn 挤出来也比埋进墙里好）。
+func _corpse_spot() -> Vector3:
 	var side := _facing.rotated(Vector3.UP, PI * 0.5)
 	if _target != null and is_instance_valid(_target) \
 			and side.dot(_target.global_position - global_position) < 0.0:
 		side = -side
-	corpse.position = global_position + side * 0.9
-	corpse.position.y = 0.0
-	print("[AI] die pos=(%.1f,%.1f) hp=0" % [global_position.x, global_position.z])
-	died.emit(self, corpse)
+	var dirs := [side, -side, _facing, -_facing]
+	var space := get_world_3d()
+	if space == null:
+		return side
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(0.8, 0.5, 0.8)
+	for d in dirs:
+		var q := PhysicsShapeQueryParameters3D.new()
+		q.shape = shape
+		q.transform = Transform3D(Basis(), global_position + d * 0.9 + Vector3(0, 0.3, 0))
+		q.exclude = [get_rid()]
+		if space.direct_space_state.intersect_shape(q, 1).is_empty():
+			return d
+	return Vector3.ZERO
 
 
 # --- 白盒外观 -----------------------------------------------------------------

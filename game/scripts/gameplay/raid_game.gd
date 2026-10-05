@@ -291,6 +291,8 @@ func _fire_from(direction: Vector3) -> void:
 	var shots: Array = _weapon.try_fire(direction)
 	if shots.is_empty():
 		return
+	# 实际击发才结束出生保护（空枪/换弹点击不解除——review BUG_0001）。
+	_end_enemy_grace()
 	print("[FIRE] shots=%d id=%s" % [shots.size(), _weapon.weapon_id])
 	_update_ammo_hud()
 	var space := get_world_3d().direct_space_state
@@ -401,8 +403,6 @@ func _hook_enemies() -> void:
 		scav.set_target(_player)
 		scav.died.connect(_on_enemy_died)
 	_foes_left = group.get_child_count()
-	# 出生保护：玩家开火即全体结束（向敌人开枪等于主动暴露）。
-	_player.fired.connect(func(_o: Vector3, _d: Vector3) -> void: _end_enemy_grace())
 
 
 func _end_enemy_grace() -> void:

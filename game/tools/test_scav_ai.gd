@@ -87,6 +87,57 @@ func _run() -> void:
 	moved.free()
 	pm.free()
 
+	# --- BUG_0002：离开出生区后回圈不再重获保护 ---
+	var back = _new_scav(Vector3(40, 0, 0), {"patrol": [Vector3(40, 0, -12)]})
+	var pb = _new_player(Vector3(40, 0, -8))
+	back.set_target(pb)
+	pb.position = Vector3(40, 0, -3)  # 离出生点 5m → 全体保护结束
+	await _step(20)
+	pb.position = Vector3(40, 0, -8)  # 回到圈内
+	await _step(40)
+	_check(back.state() == &"chase" or back.state() == &"attack",
+		"离开又回圈后玩家仍隐形: %s" % back.state())
+	back.free()
+	pb.free()
+
+	# --- BUG_0004：掩体挡路追不到目击点 → 1.5s 无进展放弃转搜索 ---
+	var stuck = _new_scav(Vector3(-20, 0, -44), {"patrol": [Vector3(-20, 0, -35)]})
+	var p5 = _new_player(Vector3(-20, 0, -60))  # 超视距，恒不可见
+	stuck.set_target(p5)
+	stuck.set("_grace_t", 0.0)
+	# 目击点围死在 4×4 封闭格内：物理上绝对不可达——验证 stuck 放弃，
+	# 而不是「沿墙滑走绕过」（那是正确行为不算卡死）。
+	var ls := Vector3(-20, 0, -50)
+	var walls: Array = [
+		[Vector3(ls.x, 0, ls.z - 2.2), Vector3(5, 4, 0.3)],
+		[Vector3(ls.x, 0, ls.z + 2.2), Vector3(5, 4, 0.3)],
+		[Vector3(ls.x - 2.2, 0, ls.z), Vector3(0.3, 4, 5)],
+		[Vector3(ls.x + 2.2, 0, ls.z), Vector3(0.3, 4, 5)],
+	]
+	var w2 := Node3D.new()
+	root.add_child(w2)
+	for wdef in walls:
+		var w := StaticBody3D.new()
+		var wc := CollisionShape3D.new()
+		var wb := BoxShape3D.new()
+		wb.size = wdef[1]
+		wc.shape = wb
+		wc.position.y = 2.0
+		w.add_child(wc)
+		w.position = wdef[0]
+		w2.add_child(w)
+	stuck.set("_last_seen", ls)
+	stuck.set("_state", &"chase")
+	stuck.set("_chase_best", INF)
+	for i in 240:
+		await physics_frame
+		if stuck.state() == &"search":
+			break
+	_check(stuck.state() == &"search", "追击卡在掩体前未放弃: %s" % stuck.state())
+	stuck.free()
+	p5.free()
+	w2.free()
+
 	# --- 正面视锥 + LOS → 追击 ---
 	var hunt = _new_scav(Vector3(20, 0, 0), {"patrol": [Vector3(20, 0, 10)], "hit_chance": 1.0})
 	var p2 = _new_player(Vector3(20, 0, 6))  # 巡逻朝向前方 6m
