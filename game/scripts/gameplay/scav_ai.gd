@@ -10,6 +10,7 @@ extends CharacterBody3D
 signal died(scav: Node3D, corpse: Node3D)
 
 const LOOT_CRATE := preload("res://scripts/gameplay/loot_crate.gd")
+const SFX := preload("res://scripts/gameplay/sfx_kit.gd")
 
 # --- 数值（普通 scav 档；后续 tier 覆盖） ------------------------------------
 var hp := 45.0
@@ -233,6 +234,7 @@ func _fire() -> void:
 	if _target == null or not is_instance_valid(_target):
 		return
 	_fire_cd = fire_interval
+	SFX.play_3d(SFX.stream("sfx_shot_scav"), self, Vector3(0, 1.5, 0), -4.0, 40.0)
 	var eye := global_position + Vector3(0, 1.45, 0)
 	var tgt := _target.global_position + Vector3(0, 1.1, 0)
 	var hit_roll := _rng.randf() < hit_chance
@@ -291,6 +293,7 @@ func _die() -> void:
 	# 平躺碰撞板会罩住尸体箱，沿尸体长轴走近时射线永远打中板子）。
 	rotation.z = PI * 0.5
 	position.y = 0.3
+	SFX.play_3d(SFX.stream("sfx_bodyfall"), self, Vector3.ZERO, -6.0, 20.0)
 	for child in get_children():
 		if child is CollisionShape3D:
 			child.set_deferred("disabled", true)

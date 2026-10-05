@@ -5,6 +5,7 @@ extends "res://scripts/gameplay/interactable.gd"
 
 const CATALOG := preload("res://scripts/gameplay/item_catalog.gd")
 const GAME_STATE := preload("res://scripts/gameplay/game_state.gd")
+const SFX := preload("res://scripts/gameplay/sfx_kit.gd")
 
 var required_item := "keycard_red"
 var opened := false
@@ -34,12 +35,15 @@ func try_open() -> bool:
 	if opened:
 		return true
 	if GAME_STATE.backpack == null or GAME_STATE.backpack.count_of(required_item) <= 0:
+		SFX.play_3d(SFX.stream("sfx_door_denied"), self, Vector3(0, 1.1, 0), -6.0, 15.0)
+		print("[DOOR] denied %s" % required_item)
 		return false
 	opened = true
 	_open_t = 0.0
 	_closed_y = _slab.position.y
 	if _col != null:
 		_col.set_deferred("disabled", true)
+	SFX.play_3d(SFX.stream("sfx_door_open"), self, Vector3(0, 1.1, 0), -4.0, 20.0)
 	print("[DOOR] open %s" % required_item)
 	return true
 

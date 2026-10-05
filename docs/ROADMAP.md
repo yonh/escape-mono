@@ -13,7 +13,8 @@
   中弹警觉/阵亡掉尸体箱）、危险品库红卡锁区（keycard_red，贵重箱）、
   scav 战利品表、出生冷静期与巡逻分区难度设计；撤离条件仍沿用三撤离点+计时。
 - [ ] **M3 第二张图**：raid_map_id 分发已就位——野外搜刮区或新室内图。
-- [ ] **M4 氛围**：厂房 PBR 贴图（wall_texture）、灯光方案、环境音/枪声/交互音、设置。
+- [ ] **M4 氛围**：~~音效~~（完成：枪声/命中/倒地/换弹/脚步/搜索/开箱/环境底噪/撤离/阵亡/门开拒，
+  tools/gen_audio.py 程序合成 CC0 + sfx_kit 接线）· 厂房 PBR 贴图（wall_texture）· 灯光方案 · 设置。
 - [ ] **M5 打磨与发布**：主菜单/存档/性能检查脚本化、itch.io 或 GitHub Release。
 
 ## 进行中
@@ -23,7 +24,7 @@
 
 1. scav 调优：命中/伤害/移速手感，尸体箱战利品表（asset-pipeline 之外的调参）。
 2. 第二张图走 `raid_map_id` 分发：野外搜刮区或新室内图。
-3. 资产跟进：`wall_texture`、`ambient_room_tone` 按厂房主题推进（asset-pipeline）。
+3. 资产跟进：`wall_texture` 按厂房主题推进（`ambient_room_tone` 已落地为 amb_factory_loop）。
 4. manifest 原 keycard/exit_door 条目按新玩法重新登记或移除。
 
 ## 暂停（原密室逃脱线）

@@ -10,6 +10,7 @@ signal search_finished(items: Array)
 signal search_cancelled
 
 const LOOT := preload("res://scripts/gameplay/loot_table.gd")
+const SFX := preload("res://scripts/gameplay/sfx_kit.gd")
 
 @export var table_id := "cache"
 @export var search_time := 2.5
@@ -46,18 +47,30 @@ func can_search() -> bool:
 	return not looted and not searching()
 
 
+var _sfx_search: AudioStreamPlayer = null
+
+
 func begin_search() -> bool:
 	if not can_search():
 		return false
 	_left = search_time
 	search_started.emit()
+	_sfx_search = SFX.loop_2d(SFX.stream("sfx_search"), self, -14.0)
 	return true
+
+
+func _stop_search_sfx() -> void:
+	if _sfx_search != null:
+		_sfx_search.stop()
+		_sfx_search.queue_free()
+		_sfx_search = null
 
 
 func cancel_search() -> void:
 	if not searching():
 		return
 	_left = 0.0
+	_stop_search_sfx()
 	search_cancelled.emit()
 
 
@@ -70,6 +83,7 @@ func tick(delta: float) -> void:
 		# cannot cancel here — cancel_search() already requires searching().
 		_left = 0.0
 		looted = true
+		_stop_search_sfx()
 		search_progress.emit(1.0)
 		search_finished.emit(LOOT.roll(table_id, _rng))
 		return
@@ -84,6 +98,7 @@ func search_now() -> Array:
 		return []
 	_left = 0.0
 	looted = true
+	_stop_search_sfx()
 	var items: Array = LOOT.roll(table_id, _rng)
 	search_progress.emit(1.0)
 	search_finished.emit(items)
