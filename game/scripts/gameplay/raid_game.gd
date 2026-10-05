@@ -160,7 +160,12 @@ func _build_indoor_lighting() -> void:
 	_environment.background_color = Color(0.035, 0.035, 0.045)
 	_environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	_environment.ambient_light_color = Color(0.55, 0.58, 0.62)
-	_environment.ambient_light_energy = 0.25
+	# 轻度雾——厂房纵深层次 + 工业烟尘感。48m 内墙约 45% 雾透，不遮读图。
+	_environment.fog_enabled = true
+	_environment.fog_light_color = Color(0.42, 0.46, 0.52)
+	_environment.fog_density = 0.015
+	_environment.fog_sky_affect = 0.0
+	_environment.ambient_light_energy = 0.32  # 走廊纯黑不可读→抬高底光
 	world.environment = _environment
 	add_child(world)
 
