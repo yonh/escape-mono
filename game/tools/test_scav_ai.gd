@@ -1,0 +1,253 @@
+extends SceneTree
+
+## Scav AI checks: patrol advance, sight cone + LOS aggro, chase→attack→damage,
+## death corpse loot, locked door keycard gate.
+## godot --headless --path . -s res://tools/test_scav_ai.gd
+
+const SCAV_AI := preload("res://scripts/gameplay/scav_ai.gd")
+const HEALTH := preload("res://scripts/gameplay/health.gd")
+const LOOT_CRATE := preload("res://scripts/gameplay/loot_crate.gd")
+const LOCKED_DOOR := preload("res://scripts/gameplay/locked_door.gd")
+const GAME_STATE := preload("res://scripts/gameplay/game_state.gd")
+const FACTORY_MAP := preload("res://scripts/gameplay/factory_map.gd")
+
+var failures: Array[String] = []
+
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+
+func _check(ok: bool, message: String) -> void:
+	if not ok:
+		failures.append(message)
+		push_error(message)
+
+
+func _new_scav(pos: Vector3, spec: Dictionary = {}) -> CharacterBody3D:
+	var s = SCAV_AI.new()
+	root.add_child(s)
+	s.position = pos
+	s.setup(spec)
+	return s
+
+
+func _new_player(pos: Vector3) -> CharacterBody3D:
+	var p := CharacterBody3D.new()
+	var col := CollisionShape3D.new()
+	var cap := CapsuleShape3D.new()
+	cap.radius = 0.31
+	cap.height = 1.75
+	col.shape = cap
+	col.position.y = 0.875
+	p.add_child(col)
+	var health = HEALTH.new()
+	health.name = "Health"
+	p.add_child(health)
+	root.add_child(p)
+	p.position = pos
+	return p
+
+
+## 物理帧推进 n 步（headless 下 SceneTree 仍有 physics）。
+func _step(n: int) -> void:
+	for i in n:
+		await physics_frame
+
+
+func _run() -> void:
+	# --- 巡逻推进 ---
+	var s = _new_scav(Vector3(0, 0, 0), {"patrol": [Vector3(0, 0, 8)]})
+	await _step(40)
+	_check(s.position.z > 0.5, "scav 未向巡逻点移动: %s" % str(s.position))
+	_check(s.state() == &"patrol", "无目标时不在巡逻态")
+
+	# --- 出生保护：玩家在出生位 4m 内完全不可见；到期后正常索敌 ---
+	var calm = _new_scav(Vector3(10, 0, 0), {"patrol": [Vector3(10, 0, -12)]})  # 巡逻朝向玩家
+	var p1 = _new_player(Vector3(10, 0, -8))  # 距 8m，保护原点=玩家出生位
+	calm.set_target(p1)
+	await _step(30)
+	_check(calm.state() == &"patrol", "出生保护期内看见未动玩家")
+	calm.set("_grace_t", 0.05)  # 到期
+	await _step(30)
+	_check(calm.state() == &"chase" or calm.state() == &"attack", "保护期结束仍未索敌")
+	calm.free()
+	p1.free()
+
+	# --- 离开出生点 >4m → 保护立即结束 ---
+	var moved = _new_scav(Vector3(30, 0, 0), {"patrol": [Vector3(30, 0, -12)]})
+	var pm = _new_player(Vector3(30, 0, -8))
+	moved.set_target(pm)
+	pm.position = Vector3(30, 0, -9)  # 位移 1m 仍保护
+	await _step(10)
+	_check(moved.state() == &"patrol", "位移<4m 已脱离保护")
+	pm.position = Vector3(30, 0, -3)  # 距出生点 5m → 保护结束
+	await _step(30)
+	_check(moved.state() == &"chase" or moved.state() == &"attack", "离开出生点后仍未索敌")
+	moved.free()
+	pm.free()
+
+	# --- BUG_0002：离开出生区后回圈不再重获保护 ---
+	var back = _new_scav(Vector3(40, 0, 0), {"patrol": [Vector3(40, 0, -12)]})
+	var pb = _new_player(Vector3(40, 0, -8))
+	back.set_target(pb)
+	pb.position = Vector3(40, 0, -3)  # 离出生点 5m → 全体保护结束
+	await _step(20)
+	pb.position = Vector3(40, 0, -8)  # 回到圈内
+	await _step(40)
+	_check(back.state() == &"chase" or back.state() == &"attack",
+		"离开又回圈后玩家仍隐形: %s" % back.state())
+	back.free()
+	pb.free()
+
+	# --- BUG_0004：掩体挡路追不到目击点 → 1.5s 无进展放弃转搜索 ---
+	var stuck = _new_scav(Vector3(-20, 0, -44), {"patrol": [Vector3(-20, 0, -35)]})
+	var p5 = _new_player(Vector3(-20, 0, -60))  # 超视距，恒不可见
+	stuck.set_target(p5)
+	stuck.set("_grace_t", 0.0)
+	# 目击点围死在 4×4 封闭格内：物理上绝对不可达——验证 stuck 放弃，
+	# 而不是「沿墙滑走绕过」（那是正确行为不算卡死）。
+	var ls := Vector3(-20, 0, -50)
+	var walls: Array = [
+		[Vector3(ls.x, 0, ls.z - 2.2), Vector3(5, 4, 0.3)],
+		[Vector3(ls.x, 0, ls.z + 2.2), Vector3(5, 4, 0.3)],
+		[Vector3(ls.x - 2.2, 0, ls.z), Vector3(0.3, 4, 5)],
+		[Vector3(ls.x + 2.2, 0, ls.z), Vector3(0.3, 4, 5)],
+	]
+	var w2 := Node3D.new()
+	root.add_child(w2)
+	for wdef in walls:
+		var w := StaticBody3D.new()
+		var wc := CollisionShape3D.new()
+		var wb := BoxShape3D.new()
+		wb.size = wdef[1]
+		wc.shape = wb
+		wc.position.y = 2.0
+		w.add_child(wc)
+		w.position = wdef[0]
+		w2.add_child(w)
+	stuck.set("_last_seen", ls)
+	stuck.set("_state", &"chase")
+	stuck.set("_chase_best", INF)
+	for i in 240:
+		await physics_frame
+		if stuck.state() == &"search":
+			break
+	_check(stuck.state() == &"search", "追击卡在掩体前未放弃: %s" % stuck.state())
+	stuck.free()
+	p5.free()
+	w2.free()
+
+	# --- 正面视锥 + LOS → 追击 ---
+	var hunt = _new_scav(Vector3(20, 0, 0), {"patrol": [Vector3(20, 0, 10)], "hit_chance": 1.0})
+	var p2 = _new_player(Vector3(20, 0, 6))  # 巡逻朝向前方 6m
+	hunt.set_target(p2)
+	hunt.set("_grace_t", 0.0)
+	await _step(20)
+	_check(hunt.state() == &"chase" or hunt.state() == &"attack", "看见玩家未追击: %s" % hunt.state())
+
+	# --- 进入射程开火 → 玩家掉血 ---
+	for i in 200:
+		await physics_frame
+		if hunt.state() == &"attack" and float(hunt.get("_fire_cd")) > 0.0:
+			break
+	var hp_before: float = p2.get_node("Health").hp
+	for i in 120:
+		await physics_frame
+		if p2.get_node("Health").hp < hp_before:
+			break
+	_check(p2.get_node("Health").hp < hp_before, "scav 开火未造成伤害")
+	hunt.free()
+
+	# --- 背身 + 隔墙不可见 ---
+	var blind = _new_scav(Vector3(-10, 0, 0), {"patrol": [Vector3(-10, 0, 10)]})  # 朝 +z
+	var p3 = _new_player(Vector3(-10, 0, -6))  # 背后 6m
+	blind.set_target(p3)
+	blind.set("_grace_t", 0.0)
+	await _step(40)
+	_check(blind.state() == &"patrol", "背后目标被看见")
+	var wall := StaticBody3D.new()
+	var wcol := CollisionShape3D.new()
+	var wbox := BoxShape3D.new()
+	wbox.size = Vector3(10, 4, 0.3)
+	wcol.shape = wbox
+	wcol.position.y = 2.0
+	wall.add_child(wcol)
+	root.add_child(wall)
+	wall.position = Vector3(-10, 0, -2)
+	var front = _new_scav(Vector3(-10, 0, 5), {"patrol": [Vector3(-10, 0, 10)]})  # 朝 +z 背对墙
+	var p4 = _new_player(Vector3(-10, 0, -8))  # 墙后
+	front.set_target(p4)
+	front.set("_grace_t", 0.0)
+	await _step(40)
+	_check(front.state() == &"patrol", "隔墙看见玩家")
+	blind.free()
+	front.free()
+	p3.free()
+	p4.free()
+	wall.free()
+
+	# --- 中弹警觉 + 阵亡掉尸体箱 ---
+	var dead = _new_scav(Vector3(5, 0, 20), {"patrol": [Vector3(5, 0, 25)]})
+	var corpse_holder: Array = []
+	dead.died.connect(func(_s, corpse): corpse_holder.append(corpse))
+	dead.take_damage(50.0)
+	_check(dead.state() == &"dead", "致死伤害未死亡")
+	_check(corpse_holder.size() == 1, "死亡未掉落尸体箱")
+	var corpse: Node3D = corpse_holder[0]
+	_check(corpse.is_in_group("interactable"), "尸体箱不可交互")
+	root.add_child(corpse)
+	corpse.searchable.search_time = 0.05
+	_check(corpse.begin_search(), "尸体箱搜索未启动")
+	for i in 20:
+		await process_frame
+		if corpse.searched():
+			break
+	_check(corpse.searched(), "尸体箱搜索未结束")
+	_check(corpse.inventory.entry_count() + corpse.pending.size() > 0, "尸体箱无战利品")
+	dead.free()
+	corpse.free()
+
+	# --- 锁门：无卡拒开 / 有卡开门且不再拦路 ---
+	GAME_STATE.backpack = null
+	GAME_STATE.ensure()
+	GAME_STATE.backpack.clear()
+	var door = LOCKED_DOOR.new()
+	root.add_child(door)
+	door.position = Vector3(0, 0, 30)
+	door.setup("keycard_red")
+	_check(door.display_prompt().contains("需要"), "锁门提示未声明钥匙卡")
+	_check(not door.try_open(), "无卡开门成功")
+	GAME_STATE.backpack.add_item("keycard_red", 1)
+	_check(door.display_prompt().contains("刷卡"), "持卡提示未切换")
+	_check(door.try_open(), "持卡开门失败")
+	_check(door.opened, "门未标记开启")
+	await _step(2)
+	var col_done := true
+	for child in door.get_children():
+		if child is CollisionShape3D and not child.disabled:
+			col_done = false
+	_check(col_done, "开门后碰撞仍生效")
+	_check(GAME_STATE.backpack.count_of("keycard_red") == 1, "钥匙卡被消耗（不应消耗）")
+	door.free()
+
+	# --- 巡逻路点都在图内（防穿墙/出界）且不得贴近玩家出生点（出生秒杀回归） ---
+	for def in FACTORY_MAP.ENEMIES:
+		for wp in def["patrol"]:
+			var inside: bool = wp.x > FACTORY_MAP.MAP_MIN.x + 0.5 and wp.x < FACTORY_MAP.MAP_MAX.x - 0.5 \
+				and wp.z > FACTORY_MAP.MAP_MIN.y + 0.5 and wp.z < FACTORY_MAP.MAP_MAX.y - 0.5
+			_check(inside, "巡逻点出界: %s" % str(wp))
+			for spawn in FACTORY_MAP.SPAWNS:
+				var spos: Vector3 = spawn["pos"]
+				_check(Vector2(wp.x, wp.z).distance_to(Vector2(spos.x, spos.z)) >= 4.5,
+					"巡逻点 %s 贴出生点 %s" % [str(wp), str(spos)])
+		var sp: Vector3 = def["pos"]
+		_check(sp.x > FACTORY_MAP.MAP_MIN.x and sp.x < FACTORY_MAP.MAP_MAX.x, "出生点出界: %s" % str(sp))
+		# scav 出生位本身也不得落在任一间「出生房」里
+		for spawn in FACTORY_MAP.SPAWNS:
+			var spos: Vector3 = spawn["pos"]
+			_check(Vector2(sp.x, sp.z).distance_to(Vector2(spos.x, spos.z)) >= 3.0,
+				"scav 出生位 %s 撞玩家出生点 %s" % [str(sp), str(spos)])
+
+	print("Scav AI checks: ", "PASS" if failures.is_empty() else failures)
+	quit(0 if failures.is_empty() else 1)

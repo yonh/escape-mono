@@ -12,6 +12,8 @@ extends RefCounted
 const PROP_KIT := preload("res://scripts/gameplay/prop_kit.gd")
 const LOOT_CRATE := preload("res://scripts/gameplay/loot_crate.gd")
 const INTERACTABLE := preload("res://scripts/gameplay/interactable.gd")
+const LOCKED_DOOR := preload("res://scripts/gameplay/locked_door.gd")
+const SCAV_AI := preload("res://scripts/gameplay/scav_ai.gd")
 const UIFONT := preload("res://scripts/gameplay/ui_font.gd")
 
 const MAP_MIN := Vector2(-24, -18)
@@ -284,6 +286,31 @@ const CRATES := [
 	{"table": "toolbox", "pos": Vector3(-4, 0, 15.5), "color": Color(0.32, 0.32, 0.36)},
 	{"table": "food", "pos": Vector3(10.5, 0, 16.5), "color": Color(0.42, 0.36, 0.2)},
 	{"table": "cache", "pos": Vector3(-7.2, 0, -5.4), "color": Color(0.3, 0.38, 0.22)},
+	# 危险品库锁区内的高价值箱（红卡门后）。
+	{"table": "valuable", "pos": Vector3(23.0, 0, -3.0), "color": Color(0.5, 0.4, 0.15)},
+]
+
+
+## 锁区门：危险品库西墙门洞（wall_door 的洞中心在 z=0）。
+const LOCKED_DOORS := [
+	{"pos": Vector3(17.5, 0, 0), "item": "keycard_red", "yaw": 90},
+]
+
+
+## Scav 游荡者：出生位 + 巡逻路点（路点沿开阔通道/巷道轴，不穿墙）。
+## 大厅两点走机器列间的空巷，走廊点沿环形走廊轴，装卸区压西侧（避开
+## 东南出生点与 GATE-0 撤离垫），车间点在西翼房内。
+const ENEMIES := [
+	# 主车间：两条南北向空巷（机器列 x0.5/9.5 之间）
+	{"pos": Vector3(-2.0, 0, -6.5), "patrol": [Vector3(-2.0, 0, -6.5), Vector3(-2.0, 0, 6.8)]},
+	{"pos": Vector3(5.0, 0, 7.0), "patrol": [Vector3(5.0, 0, 7.0), Vector3(5.0, 0, -4.6)]},
+	# 环形走廊：北（仅限 x>-12 的走廊段——x<-12 是更衣室房内会撞出生点）、东、西
+	{"pos": Vector3(-10.5, 0, -9.5), "patrol": [Vector3(-10.5, 0, -9.5), Vector3(8, 0, -9.5)]},
+	{"pos": Vector3(15.5, 0, 6.0), "patrol": [Vector3(15.5, 0, -6.5), Vector3(15.5, 0, 5.5)]},
+	{"pos": Vector3(-10.3, 0, -6.0), "patrol": [Vector3(-10.3, 0, -7.5), Vector3(-10.3, 0, 7.8)]},
+	# 装卸区西半（东端压到 -6，与东南出生点保持 >15m 视距）+ 西翼车间
+	{"pos": Vector3(-10, 0, 14.8), "patrol": [Vector3(-20, 0, 14.8), Vector3(-6, 0, 14.8)]},
+	{"pos": Vector3(-18, 0, 0.5), "patrol": [Vector3(-21, 0, -2.5), Vector3(-14.5, 0, -2.5), Vector3(-14.5, 0, 2.8), Vector3(-21, 0, 2.8)]},
 ]
 
 
@@ -295,11 +322,12 @@ const EXTRACTS := [
 ]
 
 
-## 出生点：更衣室 / 装卸区东南角 / 东北走廊口 —— 随机或 plan["spawn_idx"]。
+## 出生点：更衣室 / 装卸区东南角 / 东北储藏间 —— 随机或 plan["spawn_idx"]。
+## 三者都在带门洞的封闭房间内，巡逻敌人生成时无 LOS（防出生秒杀）。
 const SPAWNS := [
 	{"pos": Vector3(-16, 0.05, -9.5), "yaw": -90.0},
 	{"pos": Vector3(10, 0.05, 14.2), "yaw": 0.0},
-	{"pos": Vector3(19, 0.05, -10.2), "yaw": 90.0},
+	{"pos": Vector3(19.5, 0.05, -13.5), "yaw": 180.0},
 ]
 
 
@@ -376,6 +404,23 @@ static func build(root: Node3D, plan: Dictionary = {}) -> Dictionary:
 	root.add_child(extracts)
 	for def in EXTRACTS:
 		extracts.add_child(_extract_pad(String(def["label"]), def["pos"]))
+	var enemies := Node3D.new()
+	enemies.name = "Enemies"
+	root.add_child(enemies)
+	for def in ENEMIES:
+		var scav: Node3D = SCAV_AI.new()
+		scav.position = def["pos"]
+		enemies.add_child(scav)
+		scav.setup({"patrol": def["patrol"]})
+	var locked := Node3D.new()
+	locked.name = "LockedDoors"
+	root.add_child(locked)
+	for def in LOCKED_DOORS:
+		var door: Node3D = LOCKED_DOOR.new()
+		door.position = def["pos"]
+		door.rotation.y = deg_to_rad(float(def.get("yaw", 0.0)))
+		locked.add_child(door)
+		door.setup(String(def["item"]))
 	var spawn: Dictionary = pick_spawn(plan)
 	return {
 		"crates": crates,

@@ -46,6 +46,8 @@ var _map_id := "factory"
 var _map_name := "工厂"
 var _zone_label_fn: Callable = Callable()
 var _raid_left := 0.0
+var _foes_label: Label = null
+var _foes_left := 0
 var _weapon_stash: Dictionary = {}  # slot index -> {mag, reserve, cooldown}
 var _weapon_slots: Array[String] = ["pm", ""]  # KEY_1 主武器 / KEY_2 副武器
 var _active_slot := 0
@@ -63,6 +65,7 @@ func _ready() -> void:
 	_raid_left = FACTORY_MAP.RAID_SECONDS
 	_build_player(built.get("spawn", Vector3.ZERO), float(built.get("spawn_yaw", 0.0)))
 	_hook_crate_auto_open()
+	_hook_enemies()
 	_build_hud()
 	print("[SPAWN] map=%s pos=(%.1f,%.1f) yaw=%.2f" % [_map_id, _player.global_position.x, _player.global_position.z, _player.rotation.y])
 
@@ -108,11 +111,11 @@ func _process(delta: float) -> void:
 		var tp := "-"
 		if t != null:
 			tp = String(t.display_prompt()) if t.has_method("display_prompt") else String(t.get("prompt"))
-		print("[NAV] pos=(%.1f,%.2f,%.1f) yaw=%.2f pitch=%.2f zone=%s left=%.0f fps=%d target=%s" % [
+		print("[NAV] pos=(%.1f,%.2f,%.1f) yaw=%.2f pitch=%.2f zone=%s left=%.0f fps=%d foes=%d target=%s" % [
 			_player.global_position.x, _player.global_position.y, _player.global_position.z,
 			_player.rotation.y, _player.get_node("Camera3D").rotation.x,
 			String(_zone_label_fn.call(_player.global_position)) if _zone_label_fn.is_valid() else "?",
-			_raid_left, Engine.get_frames_per_second(), tp])
+			_raid_left, Engine.get_frames_per_second(), _foes_left, tp])
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -233,6 +236,8 @@ func _build_hud() -> void:
 	health_widget.position = Vector2(20, 110)
 	health_widget.bind(_health)
 	hud.add_child(health_widget)
+	_foes_label = HUD_KIT.label(hud, "", Vector2(20, 160), 14, Color(1.0, 0.6, 0.5))
+	_update_foes_hud()
 	_update_ammo_hud()
 
 
@@ -286,6 +291,8 @@ func _fire_from(direction: Vector3) -> void:
 	var shots: Array = _weapon.try_fire(direction)
 	if shots.is_empty():
 		return
+	# 实际击发才结束出生保护（空枪/换弹点击不解除——review BUG_0001）。
+	_end_enemy_grace()
 	print("[FIRE] shots=%d id=%s" % [shots.size(), _weapon.weapon_id])
 	_update_ammo_hud()
 	var space := get_world_3d().direct_space_state
@@ -382,6 +389,43 @@ func _on_interact() -> void:
 			if _extract_timer < 0.0:
 				_extract_pad = target
 				_extract_timer = 8.0
+		&"locked_door":
+			target.try_open()
+
+
+## 敌人接线：巡逻 scav 索敌目标 = 玩家；阵亡掉尸体箱挂进 LootCrates，
+## 沿用同一个「搜索完自动开格」的钩子。
+func _hook_enemies() -> void:
+	var group := get_node_or_null("Enemies")
+	if group == null:
+		return
+	for scav in group.get_children():
+		scav.set_target(_player)
+		scav.died.connect(_on_enemy_died)
+	_foes_left = group.get_child_count()
+
+
+func _end_enemy_grace() -> void:
+	var group := get_node_or_null("Enemies")
+	if group == null:
+		return
+	for scav in group.get_children():
+		if scav.has_method("end_grace"):
+			scav.end_grace()
+
+
+func _on_enemy_died(scav: Node3D, corpse: Node3D) -> void:
+	get_node("LootCrates").add_child(corpse)
+	corpse.searchable.search_finished.connect(func(_items: Array) -> void:
+		if _interact_target() == corpse and _container_layer == null:
+			_open_crate(corpse))
+	_foes_left = maxi(0, _foes_left - 1)
+	_update_foes_hud()
+
+
+func _update_foes_hud() -> void:
+	if _foes_label != null:
+		_foes_label.text = "敌人 %d" % _foes_left
 
 
 func _open_crate(crate: Node) -> void:
