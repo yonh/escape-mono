@@ -1,0 +1,9 @@
+# Godot 4
+.godot/
+*.tmp
+
+# OS
+.DS_Store
+
+# Logs / local runs
+*.log

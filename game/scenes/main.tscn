@@ -1,0 +1,97 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="player"]
+[ext_resource type="Script" path="res://scripts/interactable.gd" id="interactable"]
+
+[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
+sky_top_color = Color(0.35, 0.45, 0.6, 1)
+sky_horizon_color = Color(0.6, 0.65, 0.7, 1)
+ground_bottom_color = Color(0.15, 0.15, 0.18, 1)
+ground_horizon_color = Color(0.4, 0.4, 0.42, 1)
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+
+[sub_resource type="StandardMaterial3D" id="mat_floor"]
+albedo_color = Color(0.45, 0.45, 0.47, 1)
+
+[sub_resource type="StandardMaterial3D" id="mat_wall"]
+albedo_color = Color(0.6, 0.58, 0.52, 1)
+
+[sub_resource type="StandardMaterial3D" id="mat_door"]
+albedo_color = Color(0.4, 0.25, 0.15, 1)
+
+[sub_resource type="StandardMaterial3D" id="mat_card"]
+albedo_color = Color(0.95, 0.8, 0.15, 1)
+
+[sub_resource type="StandardMaterial3D" id="mat_pedestal"]
+albedo_color = Color(0.3, 0.3, 0.35, 1)
+
+[node name="Main" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
+rotation = Vector3(-0.9, 0.6, 0.0)
+shadow_enabled = true
+
+[node name="Floor" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
+size = Vector3(10, 0.4, 10)
+material = SubResource("mat_floor")
+
+[node name="WallN" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -5.2)
+size = Vector3(10.8, 3, 0.4)
+material = SubResource("mat_wall")
+
+[node name="WallS" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 5.2)
+size = Vector3(10.8, 3, 0.4)
+material = SubResource("mat_wall")
+
+[node name="WallE" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.2, 1.5, 0)
+size = Vector3(0.4, 3, 10.8)
+material = SubResource("mat_wall")
+
+[node name="WallW" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.2, 1.5, 0)
+size = Vector3(0.4, 3, 10.8)
+material = SubResource("mat_wall")
+
+[node name="Ceiling" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
+size = Vector3(10.8, 0.4, 10.8)
+material = SubResource("mat_wall")
+
+[node name="ExitDoor" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, -4.9)
+size = Vector3(1.2, 2.2, 0.15)
+material = SubResource("mat_door")
+script = ExtResource("interactable")
+prompt = "开门"
+message = "门锁死了——需要一张钥匙卡。"
+
+[node name="Pedestal" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0.5, 2.0)
+size = Vector3(0.6, 1.0, 0.6)
+material = SubResource("mat_pedestal")
+
+[node name="Keycard" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 1.05, 2.0)
+size = Vector3(0.3, 0.05, 0.2)
+material = SubResource("mat_card")
+script = ExtResource("interactable")
+prompt = "拾取钥匙卡"
+message = "拿到一张钥匙卡（占位资产）。"
+consume_on_use = true
+
+[node name="Player" parent="." instance=ExtResource("player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 3)

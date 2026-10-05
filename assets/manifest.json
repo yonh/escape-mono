@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "comment": "资产台账。status: needed→placeholder→in_progress→integrated→done。file 为 null 表示尚无实体文件（灰盒占位中）。校验：python3 tools/check_manifest.py",
+  "assets": [
+    {
+      "id": "keycard",
+      "type": "prop",
+      "status": "placeholder",
+      "source": "greybox",
+      "license": "CC0-1.0",
+      "file": null,
+      "target": "game/scenes/main.tscn#Keycard",
+      "notes": "逃出用的钥匙卡，当前黄色色块占位；最终需要 3D 卡片模型 + 贴图"
+    },
+    {
+      "id": "exit_door",
+      "type": "prop",
+      "status": "placeholder",
+      "source": "greybox",
+      "license": "CC0-1.0",
+      "file": null,
+      "target": "game/scenes/main.tscn#ExitDoor",
+      "notes": "出口门，当前棕色色块；需要门模型、开门动画、开门音效"
+    },
+    {
+      "id": "wall_texture",
+      "type": "texture",
+      "status": "needed",
+      "source": null,
+      "license": null,
+      "file": null,
+      "target": "game/scenes/main.tscn 墙面材质",
+      "notes": "密室墙面 PBR 贴图（albedo/normal/roughness），风格待定，见 docs/ROADMAP M1"
+    },
+    {
+      "id": "ambient_room_tone",
+      "type": "audio",
+      "status": "needed",
+      "source": null,
+      "license": null,
+      "file": null,
+      "target": "game 主场景环境音",
+      "notes": "低频房间底噪循环，营造密室氛围"
+    }
+  ]
+}
