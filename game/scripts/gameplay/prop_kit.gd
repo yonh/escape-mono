@@ -1,5 +1,7 @@
 extends RefCounted
 
+const UIFONT := preload("res://scripts/gameplay/ui_font.gd")
+
 ## 白盒素材库 Whitebox prop kit — standard-named placeholder props for map
 ## layout. Every prop is procedural geometry with a consistent color code,
 ## so maps can be designed now and real assets swapped in later by name.
@@ -422,6 +424,7 @@ static func _prop_sign(params: Dictionary) -> Node3D:
 	if not text.is_empty():
 		var l := Label3D.new()
 		l.text = text
+		l.font = UIFONT.font()
 		l.position = Vector3(0, 2.1, 0.05)
 		l.font_size = 32
 		l.pixel_size = 0.01

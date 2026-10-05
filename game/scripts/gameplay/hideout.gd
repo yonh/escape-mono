@@ -373,6 +373,7 @@ func _box(name: String, size: Vector3, pos: Vector3, mat: Material) -> StaticBod
 func _label3d(text: String, pos: Vector3, color: Color) -> void:
 	var label := Label3D.new()
 	label.text = text
+	label.font = UIFONT.font()
 	label.position = pos
 	label.modulate = color
 	label.font_size = 48

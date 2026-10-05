@@ -12,6 +12,7 @@ extends RefCounted
 const PROP_KIT := preload("res://scripts/gameplay/prop_kit.gd")
 const LOOT_CRATE := preload("res://scripts/gameplay/loot_crate.gd")
 const INTERACTABLE := preload("res://scripts/gameplay/interactable.gd")
+const UIFONT := preload("res://scripts/gameplay/ui_font.gd")
 
 const MAP_MIN := Vector2(-24, -18)
 const MAP_MAX := Vector2(24, 18)
@@ -445,6 +446,7 @@ static func _extract_pad(label: String, pos: Vector3) -> Node3D:
 	pad.add_child(mesh)
 	var l := Label3D.new()
 	l.text = label
+	l.font = UIFONT.font()
 	l.position = Vector3(0, 1.3, 0)
 	l.font_size = 48
 	l.pixel_size = 0.01
