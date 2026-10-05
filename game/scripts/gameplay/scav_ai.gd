@@ -114,8 +114,9 @@ func _physics_process(delta: float) -> void:
 				_lost_t = 0.0
 			else:
 				_search_t -= delta
-				# 原地左右扫视
+				# 原地左右扫视（网格朝向同步）
 				_facing = _facing.rotated(Vector3.UP, delta * 1.6)
+				rotation.y = atan2(-_facing.x, -_facing.z)
 				if _search_t <= 0.0:
 					_state = &"patrol"
 
