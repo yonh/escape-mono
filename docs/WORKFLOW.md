@@ -5,7 +5,7 @@
 
 ## 会话循环
 
-1. **定位**：读 `docs/ROADMAP.md` 当前里程碑 → 读最新一条 `docs/exec-logs/`（上次进展、遗留 friction）→ `git status`。
+1. **定位**：跑 `python3 tools/retro_due.py` —— `RETRO_DUE` 时先执行 `workflow-retro` 技能再继续 → 读 `docs/ROADMAP.md` 当前里程碑 → 读最新一条 `docs/exec-logs/`（上次进展、遗留 friction）→ `git status`。
 2. **选任务**：取里程碑内最靠前的未完成项；不确定时在日志里记 `blocked:` 并向用户确认。
 3. **干活**：
    - 玩法/场景/脚本 → `game/`。
@@ -25,7 +25,8 @@
 - `assets/manifest.json` 状态机：needed → placeholder → in_progress → integrated → done。
 - exec log 文件名即时间序；retro 日志命名 `YYYY-MM-DD-retro.md`。
 
-## 节奏建议
+## 节奏
 
-- 每攒 ~5 条 exec log（或用户说「复盘」）→ 跑一次 `workflow-retro`。
+- 触发是确定性的：会话开头跑 `tools/retro_due.py`（≥5 条未复盘日志 → `RETRO_DUE`），不靠记性。
+- 用户喊「复盘/retro」随时可直接触发 `workflow-retro`。
 - retro 只改「下一次会更顺」的东西：文档、技能、脚本、约定。不为改而改。

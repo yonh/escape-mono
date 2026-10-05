@@ -8,11 +8,12 @@
 - `assets/` — 独立资产库，一切经 `manifest.json` 登记。CC0。
 - `docs/` — `ROADMAP.md` 目标，`DECISIONS.md` ADR，`WORKFLOW.md` 开发循环，`exec-logs/` 执行日志。
 - `.devin/skills/` — 仓库技能：asset-pipeline、workflow-retro、godot-playtest。
-- `tools/` — `check_manifest.py`（台账校验）、`sync_assets.py`（资产入工程）。
+- `tools/` — `check_manifest.py`（台账校验）、`sync_assets.py`（资产入工程）、`retro_due.py`（复盘触发器）。
 
 ## 每个会话的循环
 
-入口：读 `docs/ROADMAP.md` 当前里程碑 + 最新一条 `docs/exec-logs/` → 干活 →
+入口：跑 `python3 tools/retro_due.py` —— 输出 `RETRO_DUE` 就先执行 `workflow-retro`
+技能再干活 → 读 `docs/ROADMAP.md` 当前里程碑 + 最新一条 `docs/exec-logs/` → 干活 →
 收尾写执行日志（模板 `docs/exec-logs/TEMPLATE.md`）。完整循环见 `docs/WORKFLOW.md`。
 
 ## 硬规则
