@@ -2,6 +2,8 @@ extends CharacterBody3D
 
 signal fired(origin: Vector3, direction: Vector3)
 
+const SFX := preload("res://scripts/gameplay/sfx_kit.gd")
+
 @export var walk_speed: float = 5.0
 @export var sprint_speed: float = 8.5
 @export var jump_velocity: float = 5.0
@@ -14,6 +16,7 @@ var in_grass: bool = false
 var fixed_camera: bool = false
 # frozen: loot UIs and death freeze movement, jumping, and firing.
 var frozen: bool = false
+var _step_m: float = 0.0   # 脚步：按水平位移累计，每 2m 响一步
 
 
 func _ready() -> void:
@@ -75,4 +78,13 @@ func _physics_process(delta: float) -> void:
 	var direction := global_basis * Vector3(horizontal.x, 0.0, horizontal.y)
 	velocity.x = direction.x * speed
 	velocity.z = direction.z * speed
+	var prev := global_position
 	move_and_slide()
+	if is_on_floor():
+		var moved := global_position - prev
+		moved.y = 0.0
+		_step_m += moved.length()
+		var stride := 1.6 if speed < 6.0 else 2.2
+		if _step_m >= stride:
+			_step_m = 0.0
+			SFX.play_2d(SFX.stream("sfx_footstep"), self, -16.0)

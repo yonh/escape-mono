@@ -16,6 +16,7 @@ const HEALTH := preload("res://scripts/gameplay/health.gd")
 const HEALTH_UI := preload("res://scripts/gameplay/health_ui.gd")
 const INVENTORY_UI := preload("res://scripts/gameplay/inventory_ui.gd")
 const HUD_KIT := preload("res://scripts/gameplay/hud_kit.gd")
+const SFX := preload("res://scripts/gameplay/sfx_kit.gd")
 
 const HIDEOUT_SCENE := "res://scenes/hideout.tscn"
 const REACH := 3.0
@@ -48,6 +49,7 @@ var _zone_label_fn: Callable = Callable()
 var _raid_left := 0.0
 var _foes_label: Label = null
 var _foes_left := 0
+var _amb_loop: AudioStreamPlayer = null
 var _weapon_stash: Dictionary = {}  # slot index -> {mag, reserve, cooldown}
 var _weapon_slots: Array[String] = ["pm", ""]  # KEY_1 主武器 / KEY_2 副武器
 var _active_slot := 0
@@ -67,6 +69,8 @@ func _ready() -> void:
 	_hook_crate_auto_open()
 	_hook_enemies()
 	_build_hud()
+	# 工厂环境底噪（机器嗡鸣+底噪循环），整场常驻。
+	_amb_loop = SFX.loop_2d(SFX.stream("amb_factory_loop"), self, -18.0)
 	print("[SPAWN] map=%s pos=(%.1f,%.1f) yaw=%.2f" % [_map_id, _player.global_position.x, _player.global_position.z, _player.rotation.y])
 
 
@@ -185,7 +189,9 @@ func _build_player(spawn: Vector3, yaw: float) -> void:
 	_player.add_child(_weapon)
 	_apply_loadout()
 	_weapon.ammo_changed.connect(func(_m: int, _r: int) -> void: _update_ammo_hud())
-	_weapon.reload_started.connect(func() -> void: _update_ammo_hud())
+	_weapon.reload_started.connect(func() -> void:
+		_update_ammo_hud()
+		SFX.play_2d(SFX.stream("sfx_reload"), self, -10.0))
 	_weapon.reload_finished.connect(func(_n: int) -> void: _update_ammo_hud())
 	_weapon.weapon_changed.connect(func(_id: String) -> void: _update_ammo_hud())
 	_player.fired.connect(func(_o: Vector3, dir: Vector3) -> void: _fire_from(dir))
@@ -194,6 +200,8 @@ func _build_player(spawn: Vector3, yaw: float) -> void:
 	_player.add_child(_health)
 	_health.protection = GAME_STATE.armor_reduction()
 	_health.died.connect(_on_player_died)
+	_health.damaged.connect(func(_a: float, _s: String) -> void:
+		SFX.play_2d(SFX.stream("sfx_hit"), self, -10.0))
 
 
 ## 装备生效: 主武器/副武器来自装备槽位（未装备主武器时给一把 PM 手枪兜底），
@@ -293,6 +301,7 @@ func _fire_from(direction: Vector3) -> void:
 		return
 	# 实际击发才结束出生保护（空枪/换弹点击不解除——review BUG_0001）。
 	_end_enemy_grace()
+	SFX.play_2d(SFX.gunshot_for(_weapon.weapon_id), self, -4.0)
 	print("[FIRE] shots=%d id=%s" % [shots.size(), _weapon.weapon_id])
 	_update_ammo_hud()
 	var space := get_world_3d().direct_space_state
@@ -335,6 +344,7 @@ func _fail_raid(banner: String) -> void:
 		_container_layer = null
 		_container_panels = []
 		_container_overflow = null
+	SFX.play_2d(SFX.stream("sfx_death"), self, -4.0)
 	_banner_label.text = banner
 
 
@@ -429,6 +439,7 @@ func _update_foes_hud() -> void:
 
 
 func _open_crate(crate: Node) -> void:
+	SFX.play_2d(SFX.stream("sfx_crate_open"), self, -8.0)
 	crate.drain_pending()
 	_player.set("frozen", true)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -553,6 +564,9 @@ func _do_extract() -> void:
 	_extract_timer = -1.0
 	_extract_pad = null
 	_release_held_loot()
+	# 挂到 SceneTree root（跨场景存活的 viewport）：player 随 raid 场景释放
+	# 不会把提示音截断——review BUG（撤离音切场景被截）。
+	SFX.play_2d(SFX.stream("sfx_extract_done"), get_tree().root, -4.0)
 	var result: Dictionary = RAID_KIT.merge_into_stash(GAME_STATE.backpack, GAME_STATE.stash)
 	var pending_result: Dictionary = RAID_KIT.merge_pending_into_stash(GAME_STATE.raid_pending, GAME_STATE.stash)
 	GAME_STATE.raids_completed += 1

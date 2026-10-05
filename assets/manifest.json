@@ -35,12 +35,162 @@
     {
       "id": "ambient_room_tone",
       "type": "audio",
-      "status": "needed",
-      "source": null,
-      "license": null,
-      "file": null,
-      "target": "game 主场景环境音",
-      "notes": "低频房间底噪循环，营造密室氛围"
+      "status": "done",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/amb_factory_loop.wav",
+      "target": "game/assets/audio/amb_factory_loop.wav",
+      "notes": "工厂环境底噪循环（tools/gen_audio.py 合成）"
+    },
+    {
+      "id": "sfx_shot_pm",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_shot_pm.wav",
+      "target": "game/assets/audio/sfx_shot_pm.wav",
+      "notes": "手枪射击音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_shot_ak",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_shot_ak.wav",
+      "target": "game/assets/audio/sfx_shot_ak.wav",
+      "notes": "步枪射击音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_shot_sg",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_shot_sg.wav",
+      "target": "game/assets/audio/sfx_shot_sg.wav",
+      "notes": "霰弹枪射击音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_shot_scav",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_shot_scav.wav",
+      "target": "game/assets/audio/sfx_shot_scav.wav",
+      "notes": "敌方射击音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_hit",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_hit.wav",
+      "target": "game/assets/audio/sfx_hit.wav",
+      "notes": "命中反馈音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_bodyfall",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_bodyfall.wav",
+      "target": "game/assets/audio/sfx_bodyfall.wav",
+      "notes": "倒地音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_reload",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_reload.wav",
+      "target": "game/assets/audio/sfx_reload.wav",
+      "notes": "换弹音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_footstep",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_footstep.wav",
+      "target": "game/assets/audio/sfx_footstep.wav",
+      "notes": "脚步音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_search",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_search.wav",
+      "target": "game/assets/audio/sfx_search.wav",
+      "notes": "搜索循环音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_crate_open",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_crate_open.wav",
+      "target": "game/assets/audio/sfx_crate_open.wav",
+      "notes": "开箱音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "amb_factory_loop",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/amb_factory_loop.wav",
+      "target": "game/assets/audio/amb_factory_loop.wav",
+      "notes": "工厂环境底噪循环（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_extract_done",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_extract_done.wav",
+      "target": "game/assets/audio/sfx_extract_done.wav",
+      "notes": "撤离成功音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_death",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_death.wav",
+      "target": "game/assets/audio/sfx_death.wav",
+      "notes": "阵亡音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_door_open",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_door_open.wav",
+      "target": "game/assets/audio/sfx_door_open.wav",
+      "notes": "锁门开启音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "sfx_door_denied",
+      "type": "audio",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "audio/sfx_door_denied.wav",
+      "target": "game/assets/audio/sfx_door_denied.wav",
+      "notes": "锁门拒绝音效（tools/gen_audio.py 程序合成，脚本即来源）"
     }
   ]
 }
