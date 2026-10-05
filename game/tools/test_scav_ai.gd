@@ -164,14 +164,23 @@ func _run() -> void:
 	_check(GAME_STATE.backpack.count_of("keycard_red") == 1, "钥匙卡被消耗（不应消耗）")
 	door.free()
 
-	# --- 巡逻路点都在图内（防穿墙/出界） ---
+	# --- 巡逻路点都在图内（防穿墙/出界）且不得贴近玩家出生点（出生秒杀回归） ---
 	for def in FACTORY_MAP.ENEMIES:
 		for wp in def["patrol"]:
 			var inside: bool = wp.x > FACTORY_MAP.MAP_MIN.x + 0.5 and wp.x < FACTORY_MAP.MAP_MAX.x - 0.5 \
 				and wp.z > FACTORY_MAP.MAP_MIN.y + 0.5 and wp.z < FACTORY_MAP.MAP_MAX.y - 0.5
 			_check(inside, "巡逻点出界: %s" % str(wp))
+			for spawn in FACTORY_MAP.SPAWNS:
+				var spos: Vector3 = spawn["pos"]
+				_check(Vector2(wp.x, wp.z).distance_to(Vector2(spos.x, spos.z)) >= 4.5,
+					"巡逻点 %s 贴出生点 %s" % [str(wp), str(spos)])
 		var sp: Vector3 = def["pos"]
 		_check(sp.x > FACTORY_MAP.MAP_MIN.x and sp.x < FACTORY_MAP.MAP_MAX.x, "出生点出界: %s" % str(sp))
+		# scav 出生位本身也不得落在任一间「出生房」里
+		for spawn in FACTORY_MAP.SPAWNS:
+			var spos: Vector3 = spawn["pos"]
+			_check(Vector2(sp.x, sp.z).distance_to(Vector2(spos.x, spos.z)) >= 3.0,
+				"scav 出生位 %s 撞玩家出生点 %s" % [str(sp), str(spos)])
 
 	print("Scav AI checks: ", "PASS" if failures.is_empty() else failures)
 	quit(0 if failures.is_empty() else 1)

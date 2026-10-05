@@ -52,7 +52,7 @@ func setup(spec: Dictionary) -> void:
 	sight_range = float(spec.get("sight_range", sight_range))
 	hit_chance = float(spec.get("hit_chance", hit_chance))
 	loot_table = String(spec.get("loot_table", loot_table))
-	_calm_t = 5.0
+	_calm_t = 10.0
 	_rng.randomize()
 	_build_mesh()
 	print("[AI] spawn pos=(%.1f,%.1f) patrol=%d" % [position.x, position.z, _patrol.size()])
@@ -136,7 +136,7 @@ func _can_see_target() -> bool:
 	if dist > sight_range:
 		return false
 	# 冷静期内只认贴脸目标（出生点旁不秒锁）。
-	if _calm_t > 0.0 and dist > 5.0:
+	if _calm_t > 0.0 and dist > 6.0:
 		return false
 	var flat := Vector3(to.x, 0, to.z).normalized()
 	if dist > 2.0 and _facing.normalized().dot(flat) < sight_cos:
@@ -228,7 +228,7 @@ func _show_tracer(eye: Vector3, tgt: Vector3) -> void:
 	_tracer.look_at(tgt, Vector3.UP)
 	_tracer.scale = Vector3(1, 1, eye.distance_to(tgt))
 	_tracer.visible = true
-	_tracer_t = 0.07
+	_tracer_t = 0.12
 
 
 ## raid_game._fire_from 的命中入口（collider.take_damage）。
@@ -253,23 +253,22 @@ func take_damage(dmg: float) -> void:
 
 func _die() -> void:
 	_state = &"dead"
-	# 倒地姿态 + 平铺碰撞（可跨过的尸体，不挡门）。
+	# 倒地姿态；尸体只留视觉不留碰撞——不挡门/不挡 F 交互射线（实机验证：
+	# 平躺碰撞板会罩住尸体箱，沿尸体长轴走近时射线永远打中板子）。
 	rotation.z = PI * 0.5
 	position.y = 0.3
 	for child in get_children():
 		if child is CollisionShape3D:
 			child.set_deferred("disabled", true)
-	var col := CollisionShape3D.new()
-	var slab := BoxShape3D.new()
-	slab.size = Vector3(0.9, 0.55, 1.8)
-	col.shape = slab
-	col.position = Vector3(0, 0.0, 0)
-	add_child(col)
-	# 尸体可搜刮：就地放一个 scav 表 loot 箱（暗色=尸袋）。
+	# 尸体可搜刮：尸体箱放在身体侧旁、偏向玩家一侧（免得和尸体视觉/墙体重叠）。
 	var corpse := LOOT_CRATE.new()
 	corpse.setup(loot_table, 4, 3, 1.8)
 	corpse.build_mesh(Color(0.25, 0.22, 0.18))
-	corpse.position = global_position
+	var side := _facing.rotated(Vector3.UP, PI * 0.5)
+	if _target != null and is_instance_valid(_target) \
+			and side.dot(_target.global_position - global_position) < 0.0:
+		side = -side
+	corpse.position = global_position + side * 0.75
 	corpse.position.y = 0.0
 	print("[AI] die pos=(%.1f,%.1f) hp=0" % [global_position.x, global_position.z])
 	died.emit(self, corpse)
