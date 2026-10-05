@@ -9,7 +9,7 @@
       "source": "greybox",
       "license": "CC0-1.0",
       "file": null,
-      "target": "game/scenes/main.tscn#Keycard",
+      "target": "（骨架密室场景已随 ADR-0004 移除，待按新玩法重新登记）",
       "notes": "逃出用的钥匙卡，当前黄色色块占位；最终需要 3D 卡片模型 + 贴图"
     },
     {
@@ -19,7 +19,7 @@
       "source": "greybox",
       "license": "CC0-1.0",
       "file": null,
-      "target": "game/scenes/main.tscn#ExitDoor",
+      "target": "（骨架密室场景已随 ADR-0004 移除，待按新玩法重新登记）",
       "notes": "出口门，当前棕色色块；需要门模型、开门动画、开门音效"
     },
     {
@@ -29,7 +29,7 @@
       "source": null,
       "license": null,
       "file": null,
-      "target": "game/scenes/main.tscn 墙面材质",
+      "target": "game/ 墙面与地面材质（工厂厂房主题待定）",
       "notes": "密室墙面 PBR 贴图（albedo/normal/roughness），风格待定，见 docs/ROADMAP M1"
     },
     {
