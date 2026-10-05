@@ -53,13 +53,14 @@ func _run() -> void:
 	var player: Node = hideout.get("_player")
 	_check(player != null and player is CharacterBody3D, "player not built")
 
-	# Three interactables registered: stash + equip bench + 工厂出发垫。
+	# Four interactables: stash + equip bench + 工厂出发垫 + 哨站出发垫。
 	var interactables := get_nodes_in_group("interactable")
 	var actions := []
 	for n in interactables:
 		actions.append(StringName(n.get("action")))
-	_check(actions.size() == 3, "expected 3 interactables, got %d" % actions.size())
-	_check(actions.has(&"stash") and actions.has(&"equip") and actions.has(&"depart_factory"),
+	_check(actions.size() == 4, "expected 4 interactables, got %d" % actions.size())
+	_check(actions.has(&"stash") and actions.has(&"equip")
+		and actions.has(&"depart_factory") and actions.has(&"depart_outpost"),
 		"interactable actions wrong: %s" % str(actions))
 
 	# Second hideout "visit" must not re-seed the starter kit.
