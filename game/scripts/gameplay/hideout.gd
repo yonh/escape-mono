@@ -8,6 +8,7 @@ extends Node3D
 const PLAYER_SCRIPT := preload("res://scripts/fps_controller.gd")
 const INTERACTABLE := preload("res://scripts/gameplay/interactable.gd")
 const GAME_STATE := preload("res://scripts/gameplay/game_state.gd")
+const SAVE_KIT := preload("res://scripts/gameplay/save_kit.gd")
 const EQUIPMENT := preload("res://scripts/gameplay/equipment.gd")
 const INVENTORY_UI := preload("res://scripts/gameplay/inventory_ui.gd")
 const UIFONT := preload("res://scripts/gameplay/ui_font.gd")
@@ -27,6 +28,7 @@ func _ready() -> void:
 	GAME_STATE.ensure()
 	if not GAME_STATE.stash.changed.is_connected(_on_stash_changed):
 		GAME_STATE.stash.changed.connect(_on_stash_changed)
+	SAVE_KIT.load_save()  # 有档则恢复仓库/装备/战绩；无档走首局发物资
 	_seed_stash_first_run()
 	_build_room()
 	_build_player()
@@ -43,6 +45,12 @@ func _seed_stash_first_run() -> void:
 		GAME_STATE.stash.add_item("light_armor", 1)
 		GAME_STATE.stash.add_item("scout_bag", 1)
 		GAME_STATE.backpack.add_item("pm_pistol", 1)
+
+
+func _notification(what: int) -> void:
+	# 生存屋关窗 → 落盘（仓库整理不再依赖下次出发才保存）。
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		SAVE_KIT.save()
 
 
 func _process(_delta: float) -> void:
@@ -238,6 +246,7 @@ func _depart() -> void:
 	_player.frozen = true
 	GAME_STATE.raid_plan = {"source": "factory"}
 	GAME_STATE.raids_departed += 1  # 出发计 departed；completed 只由撤离加
+	SAVE_KIT.save()  # 出发前落盘：保住本局整装/仓库状态
 	get_tree().change_scene_to_file(RAID_SCENE)
 
 

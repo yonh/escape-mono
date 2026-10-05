@@ -17,6 +17,7 @@ const HEALTH_UI := preload("res://scripts/gameplay/health_ui.gd")
 const INVENTORY_UI := preload("res://scripts/gameplay/inventory_ui.gd")
 const HUD_KIT := preload("res://scripts/gameplay/hud_kit.gd")
 const SFX := preload("res://scripts/gameplay/sfx_kit.gd")
+const SAVE_KIT := preload("res://scripts/gameplay/save_kit.gd")
 
 const HIDEOUT_SCENE := "res://scenes/hideout.tscn"
 const REACH := 3.0
@@ -107,6 +108,7 @@ func _process(delta: float) -> void:
 		if _dead_timer <= 0.0:
 			RAID_KIT.clear_backpack(GAME_STATE.backpack)
 			GAME_STATE.raid_pending.clear()
+			SAVE_KIT.save()  # 阵亡/MIA 回屋前落盘：仓库仍在、背包已清
 			get_tree().change_scene_to_file(HIDEOUT_SCENE)
 	_update_pack_hud()
 	_update_zone_hud()
@@ -572,6 +574,7 @@ func _do_extract() -> void:
 	GAME_STATE.raids_completed += 1
 	print("[Raid] extracted: %d moved, %d dropped (hands: %d/%d)" % [
 		result["moved"], result["dropped"], pending_result["moved"], pending_result["dropped"]])
+	SAVE_KIT.save()  # 撤离结算后落盘：战果/战绩入库
 	get_tree().change_scene_to_file(HIDEOUT_SCENE)
 
 
