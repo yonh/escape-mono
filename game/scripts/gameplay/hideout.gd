@@ -125,12 +125,12 @@ func _open_equipment() -> void:
 	_stash_layer.layer = 50
 	add_child(_stash_layer)
 	var stash_ui := INVENTORY_UI.new()
-	stash_ui.position = Vector2(60, 300)
+	stash_ui.position = Vector2(60, 208)
 	_stash_layer.add_child(stash_ui)
 	stash_ui.setup(GAME_STATE.stash, "仓库 STASH")
 	_stash_panels.append(stash_ui)
 	var pack_ui := INVENTORY_UI.new()
-	pack_ui.position = Vector2(560, 300)
+	pack_ui.position = Vector2(560, 208)
 	_stash_layer.add_child(pack_ui)
 	pack_ui.setup(GAME_STATE.backpack, "背包 BACKPACK")
 	_stash_panels.append(pack_ui)
@@ -138,7 +138,7 @@ func _open_equipment() -> void:
 	var x := 60.0
 	for slot in EQUIPMENT.SLOTS:
 		var slot_ui := INVENTORY_UI.new()
-		slot_ui.position = Vector2(x, 60)
+		slot_ui.position = Vector2(x, 40)
 		_stash_layer.add_child(slot_ui)
 		slot_ui.setup(GAME_STATE.loadout_invs[slot], String(EQUIPMENT.SLOT_NAMES[slot]))
 		_stash_panels.append(slot_ui)
@@ -147,7 +147,7 @@ func _open_equipment() -> void:
 	_restore_cursor_load()
 	var hint := Label.new()
 	hint.text = "从仓库拖拽装备到对应槽位（武器/护甲/背包）。F/Esc 关闭。"
-	hint.position = Vector2(60, 640)
+	hint.position = Vector2(60, 8)
 	UIFONT.apply(hint, 15)
 	_stash_layer.add_child(hint)
 
@@ -185,8 +185,12 @@ func _release_held_loot() -> void:
 			homes.append(from_inv)
 		for p in _stash_panels:
 			var inv = p.get("inventory")
-			if inv != null and not homes.has(inv):
-				homes.append(inv)
+			if inv == null or homes.has(inv):
+				continue
+			# 仓库是持物唯一的兜底家——自动塞进背包的仓库物会在阵亡时随背包清空。
+			if inv != GAME_STATE.stash and inv != from_inv:
+				continue
+			homes.append(inv)
 		for inv in homes:
 			leftover = inv.add_item(String(stack["id"]), leftover, Vector2i(-1, -1), bool(stack.get("rotated", false)))
 			if leftover <= 0:

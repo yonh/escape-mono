@@ -101,6 +101,32 @@ func _run() -> void:
 	GAME_STATE.stash_pending.clear()
 	hideout.call("_close_stash")
 
+	# 回归 (review BUG_0004): 装备台所有面板必须在 960x600 窗口内可见。
+	hideout.call("_open_equipment")
+	var eq_panels: Array = hideout.get("_stash_panels")
+	_check(eq_panels.size() == 6, "装备台面板数不对: %d" % eq_panels.size())
+	for p in eq_panels:
+		var bottom: float = p.position.y + p.size.y
+		_check(bottom <= 600.0, "面板超出窗口: %s bottom=%.0f" % [p.get("_title"), bottom])
+	hideout.call("_close_stash")
+
+	# 回归 (review BUG_0002): 仓库持物兜底只回仓库/手上——绝不自动塞进背包
+	# （背包会随阵亡清空）。
+	hideout.call("_open_stash")
+	panels = hideout.get("_stash_panels")
+	GAME_STATE.stash.regrid(Vector2i(1, 1), -1.0)
+	GAME_STATE.stash.add_item("gp_coin", 1)
+	var hold_drag: Dictionary = panels[0].get("_drag")
+	hold_drag["held"] = {"id": "gp_coin", "count": 1}
+	hold_drag["from_inv"] = GAME_STATE.stash
+	hideout.call("_release_held_loot")
+	_check(GAME_STATE.backpack.count_of("gp_coin") == 0, "仓库持物误入背包")
+	_check(GAME_STATE.raid_pending.size() == 1, "无家可归持物未留在手上")
+	GAME_STATE.raid_pending.clear()
+	GAME_STATE.stash.regrid(Vector2i(10, 8), -1.0)
+	GAME_STATE.stash.clear()
+	hideout.call("_close_stash")
+
 	hideout.queue_free()
 	print("Hideout checks: ", "PASS" if failures.is_empty() else failures)
 	quit(0 if failures.is_empty() else 1)

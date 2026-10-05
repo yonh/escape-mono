@@ -114,6 +114,22 @@ func _run() -> void:
 	ui.click_cell(Vector2i(2, 0), MOUSE_BUTTON_RIGHT)
 	_check(other_inv.count_of("bandage") == 2 and ui_inv.count_of("bandage") == 0, "quick transfer failed")
 
+	# 回归 (review BUG_0005): 快捷转移在原方向放不下时尝试旋转尺寸。
+	var rot_src_inv := _new_inv(4, 2)
+	rot_src_inv.add_item("water_bottle", 1, Vector2i(0, 0))  # 1x2
+	var rot_dst_inv := _new_inv(4, 2)
+	rot_dst_inv.add_item("mp133", 1, Vector2i(0, 1))  # 4x1 占满底行 → 只余 4x1 顶行
+	var rot_src := INVENTORY_UI.new()
+	root.add_child(rot_src)
+	rot_src.setup(rot_src_inv, "src")
+	var rot_dst := INVENTORY_UI.new()
+	root.add_child(rot_dst)
+	rot_dst.setup(rot_dst_inv, "dst")
+	rot_src.link(rot_dst)
+	rot_src.click_cell(Vector2i(0, 0), MOUSE_BUTTON_RIGHT)
+	_check(rot_dst_inv.count_of("water_bottle") == 1 and rot_src_inv.count_of("water_bottle") == 0,
+		"快捷转移未尝试旋转放置")
+
 	# Cross-panel drag: pick in A, drop into B
 	ui_inv.add_item("wire", 3, Vector2i(0, 1))
 	ui.click_cell(Vector2i(0, 1))

@@ -374,7 +374,12 @@ func _quick_transfer(cell: Vector2i) -> void:
 	var other = target.get("inventory")
 	if other == null:
 		return
-	var leftover = other.add_item(String(entry["id"]), int(entry["count"]))
+	var id := String(entry["id"])
+	var rotated := bool(entry.get("rotated", false))
+	var leftover = other.add_item(id, int(entry["count"]), Vector2i(-1, -1), rotated)
+	if leftover == int(entry["count"]) and CATALOG.size(id).x != CATALOG.size(id).y:
+		# 原方向无处可放时换旋转后的尺寸再试——拖拽能放，快捷转移也该能。
+		leftover = other.add_item(id, int(entry["count"]), Vector2i(-1, -1), not rotated)
 	if leftover < int(entry["count"]):
 		inventory.take_at(entry["pos"], int(entry["count"]) - leftover)
 	queue_redraw()

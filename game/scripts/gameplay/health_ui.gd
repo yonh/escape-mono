@@ -14,6 +14,11 @@ var _bar_color := Color(0.35, 0.75, 0.4)
 var _flash := 0.0
 
 
+func _init() -> void:
+	# HUD 不拦点击——鼠标释放后点生命条区域要能重新捕获。
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
 func bind(h: Node) -> void:
 	health = h
 	custom_minimum_size = Vector2(W, BAR_H + CHIP_H + 14)

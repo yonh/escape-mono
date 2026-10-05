@@ -128,6 +128,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		match event.keycode:
 			KEY_R:
 				if _weapon != null:
+					_scavenge_ammo()
 					_weapon.start_reload()
 			KEY_F:
 				_on_interact()
@@ -201,6 +202,7 @@ func _apply_loadout() -> void:
 	_active_slot = 0
 	if not _weapon_slots[1].is_empty():
 		_weapon_stash[1] = {"mag": -1, "reserve": 60, "cooldown": 0.0}
+	_scavenge_ammo()
 
 
 ## Each crate auto-opens its grid when the search ends and the player is
@@ -252,8 +254,28 @@ func _switch_weapon(slot_idx: int) -> void:
 	_weapon.setup(target, int(st.get("mag", -1)), int(st.get("reserve", 90)))
 	_weapon.set("_cooldown", float(st.get("cooldown", 0.0)))
 	_active_slot = slot_idx
+	_scavenge_ammo()
 	print("[WPN] slot=%d id=%s mag=%d reserve=%d" % [_active_slot, _weapon.weapon_id, _weapon.mag, _weapon.reserve])
 	_update_ammo_hud()
+
+
+## 搜刮弹药生效：把背包里当前武器口径的弹药并入储备弹。
+## 出发/换弹/切枪各收一次——储备弹就是「装在枪上的弹药」。
+func _scavenge_ammo() -> void:
+	if _weapon == null or GAME_STATE.backpack == null:
+		return
+	var ammo_id := WEAPON_DATA.ammo_id(_weapon.weapon_id)
+	if ammo_id.is_empty():
+		return
+	var pulled := 0
+	for entry in GAME_STATE.backpack.entries():
+		if String(entry["id"]) != ammo_id:
+			continue
+		var taken: Dictionary = GAME_STATE.backpack.take_at(entry["pos"], -1)
+		pulled += int(taken.get("count", 0))
+	if pulled > 0:
+		_weapon.give_ammo(pulled)
+		print("[WPN] ammo +%d (%s)" % [pulled, ammo_id])
 
 
 func _fire_from(direction: Vector3) -> void:
@@ -449,17 +471,24 @@ func _release_held_loot() -> void:
 			homes.append(from_inv)
 		for p in _container_panels:
 			var inv = p.get("inventory")
-			if inv != null and not homes.has(inv):
-				homes.append(inv)
+			if inv == null or homes.has(inv):
+				continue
+			# 容器格子不是玩家的家——背包物塞回箱子，撤离时随箱子留在图里无声遗失。
+			if inv != GAME_STATE.backpack and inv != from_inv:
+				continue
+			homes.append(inv)
 		for inv in homes:
 			leftover = inv.add_item(String(stack["id"]), leftover, Vector2i(-1, -1), bool(stack.get("rotated", false)))
 			if leftover <= 0:
 				break
 		if leftover > 0:
 			var parked := {"id": stack["id"], "count": leftover, "rotated": stack.get("rotated", false)}
-			if _container_overflow != null and _container_overflow.has_method("drain_pending"):
+			var crate_inv: Variant = _container_overflow.get("inventory") if _container_overflow != null else null
+			if crate_inv != null and crate_inv == from_inv:
+				# 箱子自己的物退回箱子（提示「还有 N 件未取」）。
 				_container_overflow.pending.append(parked)
 			else:
+				# 玩家的物留在手上：撤离 merge_pending 入库、阵亡随背包消失。
 				GAME_STATE.raid_pending.append(parked)
 
 

@@ -115,6 +115,8 @@ func _run() -> void:
 	root.add_child(hud)
 	hud.bind(h3)
 	_check(hud.get("health") == h3, "hud not bound")
+	# 回归 (review BUG_0006): HUD 生命条不得拦截点击（否则无法重新捕获鼠标）。
+	_check(hud.mouse_filter == Control.MOUSE_FILTER_IGNORE, "生命条拦截了点击")
 	hud.queue_free()
 
 	print("Health checks: ", "PASS" if failures.is_empty() else failures)
