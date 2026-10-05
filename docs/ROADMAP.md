@@ -19,8 +19,9 @@
 - [ ] **M4 氛围**：~~音效~~（完成：枪声/命中/倒地/换弹/脚步/搜索/开箱/环境底噪/撤离/阵亡/门开拒，
   tools/gen_audio.py 程序合成 CC0 + sfx_kit 接线）· ~~厂房贴图~~（gen_textures.py 合成
   混凝土墙/地面/压型钢板 + world-triplanar 材质）· ~~雾/灯光~~（环境雾 + 底光 0.32）· 设置。
-- [ ] **M5 打磨与发布**：~~主菜单~~（menu.tscn 继续/新局/退出）· ~~存档~~（save_kit，
-  PR#4）· ~~性能检查脚本化~~（test_perf 预算门禁）· 余：itch.io 或 GitHub Release 打包。
+- [x] **M5 打磨与发布**：~~主菜单~~（menu.tscn 继续/新局/退出）· ~~存档~~（save_kit，
+  PR#4）· ~~性能检查脚本化~~（test_perf 双图预算门禁）· ~~发布~~（export_presets
+  三平台 + tools/export.sh + tag 触发 GitHub Release workflow）。
 
 ## 进行中
 
