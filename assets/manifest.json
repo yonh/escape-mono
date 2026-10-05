@@ -25,12 +25,12 @@
     {
       "id": "wall_texture",
       "type": "texture",
-      "status": "needed",
-      "source": null,
-      "license": null,
-      "file": null,
-      "target": "game/ 墙面与地面材质（工厂厂房主题待定）",
-      "notes": "密室墙面 PBR 贴图（albedo/normal/roughness），风格待定，见 docs/ROADMAP M1"
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "textures/wall_concrete.png",
+      "target": "game/assets/textures/wall_concrete.png",
+      "notes": "预制混凝土墙面（tools/gen_textures.py 合成，可平铺）：混凝土墙/隔墙/门楣"
     },
     {
       "id": "ambient_room_tone",
@@ -191,6 +191,26 @@
       "file": "audio/sfx_door_denied.wav",
       "target": "game/assets/audio/sfx_door_denied.wav",
       "notes": "锁门拒绝音效（tools/gen_audio.py 程序合成，脚本即来源）"
+    },
+    {
+      "id": "floor_texture",
+      "type": "texture",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "textures/floor_concrete.png",
+      "target": "game/assets/textures/floor_concrete.png",
+      "notes": "厂房水磨石地面（gen_textures.py）：伸缩缝/裂缝/油渍"
+    },
+    {
+      "id": "ceiling_texture",
+      "type": "texture",
+      "status": "integrated",
+      "source": "generated",
+      "license": "CC0-1.0",
+      "file": "textures/metal_plate.png",
+      "target": "game/assets/textures/metal_plate.png",
+      "notes": "波纹压型钢板（gen_textures.py）：屋面/天花"
     }
   ]
 }

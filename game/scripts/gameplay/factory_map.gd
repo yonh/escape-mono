@@ -449,6 +449,10 @@ static func _ground(root: Node3D) -> void:
 	mesh.mesh = plane
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.30, 0.30, 0.31)  # 水磨石地面
+	mat.albedo_texture = load("res://assets/texture/floor_concrete.png")
+	mat.uv1_triplanar = true
+	mat.uv1_world_triplanar = true
+	mat.uv1_scale = Vector3(0.25, 0.25, 0.25)  # 与 prop_kit._tex_mat 同一砖率
 	mat.roughness = 0.95
 	mesh.material_override = mat
 	mesh.position.y = 0.001

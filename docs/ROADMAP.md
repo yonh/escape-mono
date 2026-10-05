@@ -14,7 +14,8 @@
   scav 战利品表、出生冷静期与巡逻分区难度设计；撤离条件仍沿用三撤离点+计时。
 - [ ] **M3 第二张图**：raid_map_id 分发已就位——野外搜刮区或新室内图。
 - [ ] **M4 氛围**：~~音效~~（完成：枪声/命中/倒地/换弹/脚步/搜索/开箱/环境底噪/撤离/阵亡/门开拒，
-  tools/gen_audio.py 程序合成 CC0 + sfx_kit 接线）· 厂房 PBR 贴图（wall_texture）· 灯光方案 · 设置。
+  tools/gen_audio.py 程序合成 CC0 + sfx_kit 接线）· ~~厂房贴图~~（gen_textures.py 合成
+  混凝土墙/地面/压型钢板 + world-triplanar 材质）· ~~雾/灯光~~（环境雾 + 底光 0.32）· 设置。
 - [ ] **M5 打磨与发布**：主菜单/存档/性能检查脚本化、itch.io 或 GitHub Release。
 
 ## 进行中

@@ -26,6 +26,7 @@ const PAL := {
 }
 
 static var _mats: Dictionary = {}
+static var _texmats: Dictionary = {}
 
 
 static func _mat(color: Color) -> StandardMaterial3D:
@@ -38,6 +39,22 @@ static func _mat(color: Color) -> StandardMaterial3D:
 	return _mats[key]
 
 
+## 贴图材质：world-triplanar——纹素密度按世界坐标，任意尺寸的 BoxMesh
+## 不用管 UV，4m 一砖。缓存按 (color, tex) 复用。
+static func _tex_mat(color: Color, tex_file: String) -> StandardMaterial3D:
+	var key := color.to_html() + "|" + tex_file
+	if not _texmats.has(key):
+		var m := StandardMaterial3D.new()
+		m.albedo_color = color
+		m.albedo_texture = load("res://assets/texture/" + tex_file)
+		m.uv1_triplanar = true
+		m.uv1_world_triplanar = true
+		m.uv1_scale = Vector3(0.25, 0.25, 0.25)  # 256px 砖 ≈ 4m
+		m.roughness = 0.9
+		_texmats[key] = m
+	return _texmats[key]
+
+
 static func _mesh_node(mesh: Mesh, color: Color, pos: Vector3, parent: Node3D) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
@@ -47,10 +64,25 @@ static func _mesh_node(mesh: Mesh, color: Color, pos: Vector3, parent: Node3D) -
 	return mi
 
 
+static func _mesh_node_mat(mesh: Mesh, mat: Material, pos: Vector3, parent: Node3D) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = mat
+	mi.position = pos
+	parent.add_child(mi)
+	return mi
+
+
 static func _box(parent: Node3D, size: Vector3, pos: Vector3, color: Color) -> MeshInstance3D:
 	var m := BoxMesh.new()
 	m.size = size
 	return _mesh_node(m, color, pos, parent)
+
+
+static func _box_tex(parent: Node3D, size: Vector3, pos: Vector3, color: Color, tex_file: String) -> MeshInstance3D:
+	var m := BoxMesh.new()
+	m.size = size
+	return _mesh_node_mat(m, _tex_mat(color, tex_file), pos, parent)
 
 
 static func _col_box(parent: Node3D, size: Vector3, pos: Vector3) -> void:
@@ -247,7 +279,7 @@ static func _prop_concrete_wall(params: Dictionary) -> Node3D:
 	var len := float(params.get("len", 8.0))
 	var h := float(params.get("h", 2.6))
 	var p := StaticBody3D.new()
-	_box(p, Vector3(len, h, 0.35), Vector3(0, h * 0.5, 0), PAL["structure"])
+	_box_tex(p, Vector3(len, h, 0.35), Vector3(0, h * 0.5, 0), PAL["structure"], "wall_concrete.png")
 	_col_box(p, Vector3(len, h, 0.35), Vector3(0, h * 0.5, 0))
 	_yaw(p, params)
 	return p
@@ -711,12 +743,12 @@ static func _prop_wall_door(params: Dictionary) -> Node3D:
 		if seg_w <= 0.02:
 			continue
 		var cx := (lo + hi) * 0.5
-		_box(p, Vector3(seg_w, h, t), Vector3(cx, h * 0.5, 0), color)
+		_box_tex(p, Vector3(seg_w, h, t), Vector3(cx, h * 0.5, 0), color, "wall_concrete.png")
 		_col_box(p, Vector3(seg_w, h, t), Vector3(cx, h * 0.5, 0))
 	# 门楣（门洞上方补齐到墙高）
 	if h - door_h > 0.02:
 		var ly := door_h + (h - door_h) * 0.5
-		_box(p, Vector3(door_w, h - door_h, t), Vector3(door_x, ly, 0), color)
+		_box_tex(p, Vector3(door_w, h - door_h, t), Vector3(door_x, ly, 0), color, "wall_concrete.png")
 		_col_box(p, Vector3(door_w, h - door_h, t), Vector3(door_x, ly, 0))
 	_yaw(p, params)
 	return p
@@ -730,7 +762,7 @@ static func _prop_ceiling(params: Dictionary) -> Node3D:
 	var t := float(params.get("t", 0.3))
 	var color: Color = params.get("color", PAL["structure"])
 	var p := StaticBody3D.new()
-	_box(p, Vector3(w, t, d), Vector3(0, y + t * 0.5, 0), color)
+	_box_tex(p, Vector3(w, t, d), Vector3(0, y + t * 0.5, 0), color, "metal_plate.png")
 	_col_box(p, Vector3(w, t, d), Vector3(0, y + t * 0.5, 0))
 	_yaw(p, params)
 	return p
