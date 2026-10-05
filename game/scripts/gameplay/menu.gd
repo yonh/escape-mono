@@ -42,7 +42,7 @@ func _ready() -> void:
 	spacer.custom_minimum_size = Vector2(0, 40)
 	center.add_child(spacer)
 
-	if SAVE_KIT.has_save():
+	if SAVE_KIT.has_valid_save():
 		_add_button(center, "继续行动（读取存档）", _on_continue)
 	_add_button(center, "新的开始", _on_new)
 	_add_button(center, "退出", func(): get_tree().quit())
@@ -82,5 +82,7 @@ func _on_new() -> void:
 		_confirming = true
 		_foot.text = "再次点击「新的开始」确认清空存档"
 		return
-	SAVE_KIT.wipe()
+	if not SAVE_KIT.wipe():
+		_foot.text = "存档删除失败，无法开始新局"
+		return
 	get_tree().change_scene_to_file("res://scenes/hideout.tscn")
