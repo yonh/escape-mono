@@ -122,6 +122,11 @@ func _run() -> void:
 	f.store_string("{broken json")
 	f.close()
 	_check(not SAVE_KIT.load_save(), "坏档应返回 false")
+	# BUG_0001：坏档不算「可继续」
+	_check(SAVE_KIT.has_save(), "坏档文件仍在")
+	_check(not SAVE_KIT.has_valid_save(), "坏档不应视为可继续进度")
+	# BUG_0002：正常删档返回 true
+	_check(SAVE_KIT.wipe(), "wipe 应成功")
 
 	# wipe → 状态清空 + 删档
 	SAVE_KIT.wipe()

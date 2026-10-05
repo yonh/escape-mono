@@ -60,6 +60,19 @@ static func has_save() -> bool:
 	return FileAccess.file_exists(SAVE_PATH)
 
 
+## 菜单「继续」门槛：文件在且能解析、版本兼容——坏档不应显示可继续
+## （review BUG_0001：坏档点继续→读档失败→发初始物资→还可能覆盖原档）。
+static func has_valid_save() -> bool:
+	if not has_save():
+		return false
+	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if f == null:
+		return false
+	var data = JSON.parse_string(f.get_as_text())
+	f.close()
+	return typeof(data) == TYPE_DICTIONARY and data.get("version", 0) == SAVE_VERSION
+
+
 ## 读盘恢复。无档/坏档返回 false（调用方按新档走发物资流程）。
 static func load_save() -> bool:
 	if not has_save():
@@ -100,10 +113,14 @@ static func load_save() -> bool:
 	return true
 
 
-## 新档/重置：删档 + 清内存态（重开新周目）。
-static func wipe() -> void:
+## 新档/重置：删档 + 清内存态（重开新周目）。返回删档是否成功——
+## 失败时调用方应拦下（否则旧档仍在，读档链会恢复旧进度，review BUG_0002）。
+static func wipe() -> bool:
 	if has_save():
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+		var err := DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+		if err != OK:
+			push_warning("[SAVE] wipe failed: %s" % error_string(err))
+			return false
 	GAME_STATE.ensure()
 	GAME_STATE.stash.clear()
 	GAME_STATE.backpack.clear()
@@ -114,3 +131,4 @@ static func wipe() -> void:
 	GAME_STATE.raids_completed = 0
 	GAME_STATE.raids_departed = 0
 	print("[SAVE] wiped")
+	return true
