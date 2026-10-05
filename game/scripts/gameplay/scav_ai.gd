@@ -90,7 +90,7 @@ func _physics_process(delta: float) -> void:
 				if dist <= attack_range:
 					_state = &"attack"
 				else:
-					_move_toward(_last_seen, speed_chase, delta)
+					_move_toward(_last_seen, speed_chase, delta, 1.2)
 			else:
 				_lost_t += delta
 				if _flat_dist(_last_seen) <= 1.2:
@@ -185,10 +185,11 @@ func _face(dir: Vector3) -> void:
 		rotation.y = atan2(-_facing.x, -_facing.z)
 
 
-func _move_toward(p: Vector3, speed: float, _delta: float) -> void:
+func _move_toward(p: Vector3, speed: float, _delta: float, min_dist := 0.0) -> void:
 	var dir := p - global_position
 	dir.y = 0.0
-	if dir.length() < 0.05:
+	# 最小接近距离：不再顶进玩家胶囊（贴身会没入相机近平面不可见）。
+	if dir.length() <= min_dist or dir.length() < 0.05:
 		velocity = Vector3.ZERO
 		move_and_slide()
 		return
