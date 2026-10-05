@@ -89,6 +89,34 @@ func _run() -> void:
 		String(GAME_STATE.stash_pending[0]["id"]) == "ai2_medkit",
 		"满仓 pending 未恢复: %s" % [GAME_STATE.stash_pending])
 
+	# BUG_0001：save_inraid 剥背包——弃局重启按 MIA 丢包，不能带出出发时值
+	SAVE_KIT.wipe()
+	GAME_STATE.ensure()
+	GAME_STATE.backpack.add_item("bandage", 2)
+	GAME_STATE.raid_pending = [{"id": "gp_coin", "count": 1, "rotated": false}]
+	SAVE_KIT.save_inraid()
+	GAME_STATE.backpack.clear()
+	GAME_STATE.raid_pending = []
+	SAVE_KIT.load_save()
+	_check(GAME_STATE.backpack.entry_count() == 0,
+		"inraid 存档背包非空: %d" % GAME_STATE.backpack.entry_count())
+	_check(GAME_STATE.raid_pending.is_empty(), "inraid 存档 raid_pending 非空")
+
+	# BUG_0002：9×6/55kg 突击背囊恢复——先 regrid 再装，边缘物资不丢
+	SAVE_KIT.wipe()
+	GAME_STATE.ensure()
+	GAME_STATE.backpack.regrid(Vector2i(9, 6), 55.0)
+	GAME_STATE.backpack.add_item("gp_coin", 1, Vector2i(8, 5))  # 默认 8×5 之外的格
+	SAVE_KIT.save()
+	GAME_STATE.backpack.regrid(Vector2i(8, 5), 40.0)  # 模拟重启后的默认背包
+	SAVE_KIT.load_save()
+	_check(GAME_STATE.backpack.grid_size == Vector2i(9, 6),
+		"背包尺寸未恢复: %s" % GAME_STATE.backpack.grid_size)
+	_check(GAME_STATE.backpack.entry_count() == 1 or \
+		(not GAME_STATE.stash_pending.is_empty() and \
+		String(GAME_STATE.stash_pending[0]["id"]) == "gp_coin"),
+		"边缘格物资丢失: pack=%d pending=%s" % [GAME_STATE.backpack.entry_count(), GAME_STATE.stash_pending])
+
 	# 坏档 → false 不崩
 	var f := FileAccess.open("user://test_save.json", FileAccess.WRITE)
 	f.store_string("{broken json")

@@ -13,7 +13,9 @@ const SAVE_VERSION := 1
 
 
 ## 当前状态序列化（JSON 可写：只含 int/float/String/Array/Dictionary）。
-static func serialize() -> Dictionary:
+## strip_raid：出发时的在局快照——背包/raid_pending 剥为空 + in_raid 标记，
+## 中途弃局重启 = MIA 丢包语义（review BUG_0001：否则背包永保出发时值）。
+static func serialize(strip_raid: bool = false) -> Dictionary:
 	GAME_STATE.ensure()
 	var loadout := {}
 	for slot in GAME_STATE.loadout_invs:
@@ -21,24 +23,34 @@ static func serialize() -> Dictionary:
 	return {
 		"version": SAVE_VERSION,
 		"stash": GAME_STATE.stash.serialize(),
-		"backpack": GAME_STATE.backpack.serialize(),
+		"backpack": {} if strip_raid else GAME_STATE.backpack.serialize(),
 		"loadout": loadout,
 		"stash_pending": GAME_STATE.stash_pending.duplicate(),
-		"raid_pending": GAME_STATE.raid_pending.duplicate(),
+		"raid_pending": [] if strip_raid else GAME_STATE.raid_pending.duplicate(),
 		"raids_completed": GAME_STATE.raids_completed,
 		"raids_departed": GAME_STATE.raids_departed,
 		"raid_map_id": String(GAME_STATE.raid_map_id),
+		"in_raid": strip_raid,
 		"saved_at": Time.get_unix_time_from_system(),
 	}
 
 
 ## 写盘。返回是否成功（不抛——存档失败不该崩游戏，记 [SAVE] 日志）。
 static func save() -> bool:
+	return _write(serialize())
+
+
+## 出发专用：写入「在局中」快照（背包剥离），弃局重启即 MIA。
+static func save_inraid() -> bool:
+	return _write(serialize(true))
+
+
+static func _write(blob: Dictionary) -> bool:
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
 		push_warning("[SAVE] open for write failed: %s" % FileAccess.get_open_error())
 		return false
-	f.store_string(JSON.stringify(serialize()))
+	f.store_string(JSON.stringify(blob))
 	f.close()
 	print("[SAVE] written stash=%d pack=%d" % [GAME_STATE.stash.entry_count(), GAME_STATE.backpack.entry_count()])
 	return true
@@ -62,13 +74,24 @@ static func load_save() -> bool:
 		return false
 	GAME_STATE.ensure()
 	GAME_STATE.stash.load_data(data.get("stash", {}))
-	GAME_STATE.backpack.load_data(data.get("backpack", {}))
+	# 突击背囊会让背包扩大到 9×6/55kg：先按存档的尺寸/限重 regrid 再装，
+	# 否则超过默认 8×5/40 的物资装不下被丢（review BUG_0002）。
+	var bd: Dictionary = data.get("backpack", {})
+	if not bd.is_empty():
+		var grid: Array = bd.get("grid", [8, 5])
+		GAME_STATE.backpack.regrid(
+			Vector2i(int(grid[0]), int(grid[1])),
+			float(bd.get("weight_limit", 40.0)))
 	var loadout: Dictionary = data.get("loadout", {})
 	for slot in loadout:
 		if GAME_STATE.loadout_invs.has(StringName(slot)):
 			GAME_STATE.loadout_invs[StringName(slot)].load_data(loadout[slot])
+	var pack_left: Array = GAME_STATE.backpack.load_data(bd)
 	GAME_STATE.stash_pending = data.get("stash_pending", [])
 	GAME_STATE.raid_pending = data.get("raid_pending", [])
+	# 装不下的背包物进待入队——必须在 pending 赋档值之后追加，否则被覆盖。
+	for it in pack_left:
+		GAME_STATE.stash_pending.append(it)  # 装不下的进待入队，永不丢
 	GAME_STATE.raids_completed = int(data.get("raids_completed", 0))
 	GAME_STATE.raids_departed = int(data.get("raids_departed", 0))
 	GAME_STATE.raid_map_id = String(data.get("raid_map_id", "factory"))

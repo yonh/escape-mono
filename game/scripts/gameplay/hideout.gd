@@ -49,7 +49,10 @@ func _seed_stash_first_run() -> void:
 
 func _notification(what: int) -> void:
 	# 生存屋关窗 → 落盘（仓库整理不再依赖下次出发才保存）。
+	# 先把光标上拖拽中的物资归还库存，否则该物品不进档凭空消失（review BUG_0003）。
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		if _stash_layer != null:
+			_release_held_loot()
 		SAVE_KIT.save()
 
 
@@ -246,7 +249,7 @@ func _depart() -> void:
 	_player.frozen = true
 	GAME_STATE.raid_plan = {"source": "factory"}
 	GAME_STATE.raids_departed += 1  # 出发计 departed；completed 只由撤离加
-	SAVE_KIT.save()  # 出发前落盘：保住本局整装/仓库状态
+	SAVE_KIT.save_inraid()  # 存「在局中」快照：背包剥离——弃局重启即 MIA
 	get_tree().change_scene_to_file(RAID_SCENE)
 
 
