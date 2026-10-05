@@ -5,6 +5,10 @@ on:
   push:
     tags: ["v*"]
 
+# BUG_0003：action-gh-release 需要写权限创建 Release/传包。
+permissions:
+  contents: write
+
 jobs:
   export:
     runs-on: ubuntu-latest
@@ -30,6 +34,10 @@ jobs:
             https://github.com/godotengine/godot/releases/download/4.7-stable/Godot_v4.7-stable_export_templates.tpz
           unzip -qo /tmp/tpl.tpz "templates/*" -d "$TPL_DIR"
           mv "$TPL_DIR"/templates/* "$TPL_DIR"/ && rmdir "$TPL_DIR"/templates
+
+      # BUG_0002：全新检出无 .godot/ 导入缓存，先导入再导出。
+      - name: Import resources
+        run: godot --headless --path game --import
 
       - name: Export all platforms
         env:

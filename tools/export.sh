@@ -24,14 +24,27 @@ export_one() {
 
 target="${1:-all}"
 if [[ "$target" == "all" ]]; then
-  export_one macos && export_one windows && export_one linux
+  BUILT=(macos windows linux)
 else
-  export_one "$target"
+  BUILT=("$target")
 fi
+for t in "${BUILT[@]}"; do
+  export_one "$t"
+done
 
-# 打包为可分发 zip（macOS 导出即 zip，直接纳入 release/）
+# 只打包本次实际导出的平台（BUG_0001：单平台导出不再依赖/混入旧产物）
 mkdir -p builds/release
-cp builds/escape-mono-macos.zip builds/release/
-(cd builds && rm -f release/escape-mono-windows.zip && zip -q release/escape-mono-windows.zip escape-mono-windows.exe escape-mono-windows.pck)
-(cd builds && rm -f release/escape-mono-linux.zip && zip -q release/escape-mono-linux.zip escape-mono-linux.x86_64)
+for t in "${BUILT[@]}"; do
+  case "$t" in
+    macos)
+      cp builds/escape-mono-macos.zip builds/release/
+      ;;
+    windows)
+      (cd builds && rm -f release/escape-mono-windows.zip && zip -q release/escape-mono-windows.zip escape-mono-windows.exe escape-mono-windows.pck)
+      ;;
+    linux)
+      (cd builds && rm -f release/escape-mono-linux.zip && zip -q release/escape-mono-linux.zip escape-mono-linux.x86_64)
+      ;;
+  esac
+done
 ls -lh builds/release/
