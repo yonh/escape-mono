@@ -77,8 +77,9 @@ func _ready() -> void:
 	_hook_crate_auto_open()
 	_hook_enemies()
 	_build_hud()
-	# 工厂环境底噪（机器嗡鸣+底噪循环），整场常驻。
-	_amb_loop = SFX.loop_2d(SFX.stream("amb_factory_loop"), self, -18.0)
+	# 室内图播工厂机器底噪；野外图无对应底噪资产，保持静默（BUG_0002）。
+	if bool(built.get("indoor", true)):
+		_amb_loop = SFX.loop_2d(SFX.stream("amb_factory_loop"), self, -18.0)
 	print("[SPAWN] map=%s pos=(%.1f,%.1f) yaw=%.2f" % [_map_id, _player.global_position.x, _player.global_position.z, _player.rotation.y])
 
 

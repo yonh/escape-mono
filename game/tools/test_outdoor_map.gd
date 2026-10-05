@@ -29,6 +29,33 @@ func _inside(pos: Vector3) -> bool:
 		and pos.z > OUTDOOR_MAP.MAP_MIN.y and pos.z < OUTDOOR_MAP.MAP_MAX.y
 
 
+## 实体道具的占地矩形（横向 AABB + 0.6 安全边距；yaw 对近似取包围盒）。
+func _prop_rects() -> Array:
+	var rects := []
+	for def in OUTDOOR_MAP.LAYOUT:
+		var p: Vector3 = def["pos"]
+		var params: Dictionary = def.get("params", {})
+		var half := Vector2.ZERO
+		match StringName(def["kind"]):
+			&"warehouse":
+				half = Vector2(float(params.get("w", 14.0)) * 0.5, float(params.get("d", 20.0)) * 0.5)
+			&"container":
+				half = Vector2(3.0, 1.25)  # 本图 container yaw 全为 0
+			&"guard_booth", &"watchtower":
+				half = Vector2(1.6, 1.6)
+		if half != Vector2.ZERO:
+			rects.append(Rect2(p.x - half.x - 0.6, p.z - half.y - 0.6,
+				half.x * 2 + 1.2, half.y * 2 + 1.2))
+	return rects
+
+
+func _inside_prop(pos: Vector3) -> bool:
+	for r: Rect2 in _prop_rects():
+		if r.has_point(Vector2(pos.x, pos.z)):
+			return true
+	return false
+
+
 func _run() -> void:
 	# 道具 kind 全部注册
 	for def in OUTDOOR_MAP.LAYOUT:
@@ -59,6 +86,12 @@ func _run() -> void:
 		for e in OUTDOOR_MAP.ENEMIES:
 			var d: float = s["pos"].distance_to(e["pos"])
 			_check(d > 12.0, "出生点 %s 距敌 %.1fm" % [s["pos"], d])
+
+	# BUG_0001 回归：敌人出生点/巡点不得嵌入实体 AABB（集装箱/仓库/岗亭/哨塔）
+	for e in OUTDOOR_MAP.ENEMIES:
+		_check(not _inside_prop(e["pos"]), "敌人出生嵌入实体 %s" % e["pos"])
+		for w in e["patrol"]:
+			_check(not _inside_prop(w), "巡点嵌入实体 %s" % w)
 
 	# build() 结构 + 契约字段
 	GAME_STATE.ensure()

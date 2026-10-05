@@ -7,3 +7,6 @@
 
 # Logs / local runs
 *.log
+
+# 本地导出产物
+builds/

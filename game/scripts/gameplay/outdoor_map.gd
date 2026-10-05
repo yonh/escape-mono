@@ -137,11 +137,12 @@ const SPAWNS := [
 
 
 ## 6 名 scav：视野 20m 配开阔场，巡逻线沿大道/掩体带。
+## 点位须避开实体 AABB：集装箱 x±3/z±1.25、仓库 w×d 中置、岗亭 2.4、哨塔 ~3。
 const ENEMIES := [
 	{"pos": Vector3(-24, 0, -6), "patrol": [Vector3(-24, 0, -16), Vector3(-24, 0, 4)], "spec": {"sight_range": 20.0}},
-	{"pos": Vector3(4, 0, -18), "patrol": [Vector3(-6, 0, -18), Vector3(12, 0, -18)], "spec": {"sight_range": 20.0}},
-	{"pos": Vector3(0, 0, 6), "patrol": [Vector3(-6, 0, 8), Vector3(8, 0, 8), Vector3(8, 0, -2), Vector3(-6, 0, -2)], "spec": {"sight_range": 20.0}},
-	{"pos": Vector3(14, 0, -14), "patrol": [Vector3(8, 0, -14), Vector3(22, 0, -14)], "spec": {"sight_range": 20.0}},
+	{"pos": Vector3(4, 0, -13.5), "patrol": [Vector3(-4, 0, -13.5), Vector3(12, 0, -13.5)], "spec": {"sight_range": 20.0}},
+	{"pos": Vector3(0, 0, 6), "patrol": [Vector3(-6, 0, 9.5), Vector3(9, 0, 9.5), Vector3(9, 0, -2), Vector3(-6, 0, -2)], "spec": {"sight_range": 20.0}},
+	{"pos": Vector3(8, 0, -10.5), "patrol": [Vector3(1, 0, -10.5), Vector3(12, 0, -10.5)], "spec": {"sight_range": 20.0}},
 	{"pos": Vector3(-10, 0, 12), "patrol": [Vector3(-12, 0, 12), Vector3(6, 0, 12)], "spec": {"sight_range": 20.0}},
 	{"pos": Vector3(24, 0, 6), "patrol": [Vector3(24, 0, 0), Vector3(24, 0, 10)], "spec": {"sight_range": 20.0}},
 ]
