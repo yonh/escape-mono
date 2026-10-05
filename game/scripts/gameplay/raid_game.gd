@@ -564,7 +564,9 @@ func _do_extract() -> void:
 	_extract_timer = -1.0
 	_extract_pad = null
 	_release_held_loot()
-	SFX.play_2d(SFX.stream("sfx_extract_done"), self, -4.0)
+	# 挂到 SceneTree root（跨场景存活的 viewport）：player 随 raid 场景释放
+	# 不会把提示音截断——review BUG（撤离音切场景被截）。
+	SFX.play_2d(SFX.stream("sfx_extract_done"), get_tree().root, -4.0)
 	var result: Dictionary = RAID_KIT.merge_into_stash(GAME_STATE.backpack, GAME_STATE.stash)
 	var pending_result: Dictionary = RAID_KIT.merge_pending_into_stash(GAME_STATE.raid_pending, GAME_STATE.stash)
 	GAME_STATE.raids_completed += 1
