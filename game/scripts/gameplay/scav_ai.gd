@@ -33,7 +33,8 @@ var _last_seen := Vector3.ZERO
 var _lost_t := 0.0
 var _search_t := 0.0
 var _fire_cd := 0.0
-var _calm_t := 0.0              # 开局冷静期：出生点旁的敌人不秒锁
+var _grace_t := 0.0            # 出生保护期：玩家未离开出生点 4m 且未开火时完全不可见
+var _grace_origin := Vector3.ZERO
 var _facing := Vector3.FORWARD
 var _rng := RandomNumberGenerator.new()
 var _body: MeshInstance3D = null
@@ -52,7 +53,7 @@ func setup(spec: Dictionary) -> void:
 	sight_range = float(spec.get("sight_range", sight_range))
 	hit_chance = float(spec.get("hit_chance", hit_chance))
 	loot_table = String(spec.get("loot_table", loot_table))
-	_calm_t = 10.0
+	_grace_t = 25.0
 	_rng.randomize()
 	_build_mesh()
 	print("[AI] spawn pos=(%.1f,%.1f) patrol=%d" % [position.x, position.z, _patrol.size()])
@@ -60,13 +61,19 @@ func setup(spec: Dictionary) -> void:
 
 func set_target(player: Node3D) -> void:
 	_target = player
+	_grace_origin = player.global_position  # 玩家出生位——保护期以此为心
+
+
+## 玩家开火 → 全体敌人立即结束出生保护（raid_game 接线）。
+func end_grace() -> void:
+	_grace_t = 0.0
 
 
 func _physics_process(delta: float) -> void:
 	if _state == &"dead":
 		return
 	_fire_cd = maxf(0.0, _fire_cd - delta)
-	_calm_t = maxf(0.0, _calm_t - delta)
+	_grace_t = maxf(0.0, _grace_t - delta)
 	var seen := _can_see_target()
 	if seen:
 		_last_seen = _target.global_position
@@ -135,9 +142,14 @@ func _can_see_target() -> bool:
 	var dist := to.length()
 	if dist > sight_range:
 		return false
-	# 冷静期内只认贴脸目标（出生点旁不秒锁）。
-	if _calm_t > 0.0 and dist > 6.0:
-		return false
+	# 出生保护：玩家还在出生点 4m 内（未开火、未到点）则完全不可见——
+	# 比 patrol-LOS 几何更稳，三个出生点通用；计时到期后恢复常规索敌。
+	if _grace_t > 0.0:
+		var from_spawn := _target.global_position - _grace_origin
+		from_spawn.y = 0.0
+		if from_spawn.length() <= 4.0:
+			return false
+		_grace_t = 0.0  # 玩家已离开出生区，保护即刻结束
 	var flat := Vector3(to.x, 0, to.z).normalized()
 	if dist > 2.0 and _facing.normalized().dot(flat) < sight_cos:
 		return false
@@ -268,7 +280,7 @@ func _die() -> void:
 	if _target != null and is_instance_valid(_target) \
 			and side.dot(_target.global_position - global_position) < 0.0:
 		side = -side
-	corpse.position = global_position + side * 0.75
+	corpse.position = global_position + side * 0.9
 	corpse.position.y = 0.0
 	print("[AI] die pos=(%.1f,%.1f) hp=0" % [global_position.x, global_position.z])
 	died.emit(self, corpse)

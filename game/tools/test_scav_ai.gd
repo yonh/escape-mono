@@ -62,20 +62,36 @@ func _run() -> void:
 	_check(s.position.z > 0.5, "scav 未向巡逻点移动: %s" % str(s.position))
 	_check(s.state() == &"patrol", "无目标时不在巡逻态")
 
-	# --- 冷静期：>5m 不秒锁 ---
-	var calm = _new_scav(Vector3(10, 0, 0), {"patrol": [Vector3(10, 0, 10)]})
-	var p1 = _new_player(Vector3(10, 0, -8))  # 距 8m，在移动朝向里
+	# --- 出生保护：玩家在出生位 4m 内完全不可见；到期后正常索敌 ---
+	var calm = _new_scav(Vector3(10, 0, 0), {"patrol": [Vector3(10, 0, -12)]})  # 巡逻朝向玩家
+	var p1 = _new_player(Vector3(10, 0, -8))  # 距 8m，保护原点=玩家出生位
 	calm.set_target(p1)
 	await _step(30)
-	_check(calm.state() == &"patrol", "冷静期内越距索敌")
+	_check(calm.state() == &"patrol", "出生保护期内看见未动玩家")
+	calm.set("_grace_t", 0.05)  # 到期
+	await _step(30)
+	_check(calm.state() == &"chase" or calm.state() == &"attack", "保护期结束仍未索敌")
 	calm.free()
 	p1.free()
+
+	# --- 离开出生点 >4m → 保护立即结束 ---
+	var moved = _new_scav(Vector3(30, 0, 0), {"patrol": [Vector3(30, 0, -12)]})
+	var pm = _new_player(Vector3(30, 0, -8))
+	moved.set_target(pm)
+	pm.position = Vector3(30, 0, -9)  # 位移 1m 仍保护
+	await _step(10)
+	_check(moved.state() == &"patrol", "位移<4m 已脱离保护")
+	pm.position = Vector3(30, 0, -3)  # 距出生点 5m → 保护结束
+	await _step(30)
+	_check(moved.state() == &"chase" or moved.state() == &"attack", "离开出生点后仍未索敌")
+	moved.free()
+	pm.free()
 
 	# --- 正面视锥 + LOS → 追击 ---
 	var hunt = _new_scav(Vector3(20, 0, 0), {"patrol": [Vector3(20, 0, 10)], "hit_chance": 1.0})
 	var p2 = _new_player(Vector3(20, 0, 6))  # 巡逻朝向前方 6m
 	hunt.set_target(p2)
-	hunt.set("_calm_t", 0.0)
+	hunt.set("_grace_t", 0.0)
 	await _step(20)
 	_check(hunt.state() == &"chase" or hunt.state() == &"attack", "看见玩家未追击: %s" % hunt.state())
 
@@ -96,7 +112,7 @@ func _run() -> void:
 	var blind = _new_scav(Vector3(-10, 0, 0), {"patrol": [Vector3(-10, 0, 10)]})  # 朝 +z
 	var p3 = _new_player(Vector3(-10, 0, -6))  # 背后 6m
 	blind.set_target(p3)
-	blind.set("_calm_t", 0.0)
+	blind.set("_grace_t", 0.0)
 	await _step(40)
 	_check(blind.state() == &"patrol", "背后目标被看见")
 	var wall := StaticBody3D.new()
@@ -111,7 +127,7 @@ func _run() -> void:
 	var front = _new_scav(Vector3(-10, 0, 5), {"patrol": [Vector3(-10, 0, 10)]})  # 朝 +z 背对墙
 	var p4 = _new_player(Vector3(-10, 0, -8))  # 墙后
 	front.set_target(p4)
-	front.set("_calm_t", 0.0)
+	front.set("_grace_t", 0.0)
 	await _step(40)
 	_check(front.state() == &"patrol", "隔墙看见玩家")
 	blind.free()

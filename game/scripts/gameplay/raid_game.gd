@@ -401,6 +401,17 @@ func _hook_enemies() -> void:
 		scav.set_target(_player)
 		scav.died.connect(_on_enemy_died)
 	_foes_left = group.get_child_count()
+	# 出生保护：玩家开火即全体结束（向敌人开枪等于主动暴露）。
+	_player.fired.connect(func(_o: Vector3, _d: Vector3) -> void: _end_enemy_grace())
+
+
+func _end_enemy_grace() -> void:
+	var group := get_node_or_null("Enemies")
+	if group == null:
+		return
+	for scav in group.get_children():
+		if scav.has_method("end_grace"):
+			scav.end_grace()
 
 
 func _on_enemy_died(scav: Node3D, corpse: Node3D) -> void:
