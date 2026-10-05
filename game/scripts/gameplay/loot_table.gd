@@ -58,6 +58,21 @@ const TABLES: Dictionary = {
 			{"id": "keycard_red", "weight": 4, "min": 1, "max": 1},
 		],
 	},
+	"scav": {  # 游荡者尸体：随身弹药/医疗/食物，偶见武器与钥匙卡
+		"rolls": 2,
+		"entries": [
+			{"id": "pm_pistol", "weight": 10, "min": 1, "max": 1},
+			{"id": "ammo_9x18", "weight": 24, "min": 6, "max": 18},
+			{"id": "ammo_545", "weight": 12, "min": 10, "max": 20},
+			{"id": "bandage", "weight": 22, "min": 1, "max": 2},
+			{"id": "ai2_medkit", "weight": 8, "min": 1, "max": 1},
+			{"id": "canned_beef", "weight": 12, "min": 1, "max": 1},
+			{"id": "crackers", "weight": 10, "min": 1, "max": 1},
+			{"id": "scrap_metal", "weight": 10, "min": 1, "max": 2},
+			{"id": "gp_coin", "weight": 6, "min": 1, "max": 1},
+			{"id": "keycard_red", "weight": 5, "min": 1, "max": 1},
+		],
+	},
 }
 
 

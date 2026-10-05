@@ -18,7 +18,8 @@ func check(cond: bool, label: String) -> void:
 
 func _init() -> void:
 	var ids = LOOT.table_ids()
-	check(ids.size() == 5, "five loot tables defined")
+	for expected in ["cache", "medkit", "food", "toolbox", "valuable", "scav"]:
+		check(ids.has(expected), "missing loot table %s" % expected)
 	for issue in LOOT.validate():
 		failures.append(issue)
 
